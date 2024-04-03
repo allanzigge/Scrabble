@@ -33,3 +33,9 @@ C:/Users/allan/Programs/4. Semester/FUPRO/Scrabble/ScrabbleBot/obj/Debug/net7.0/
 /Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.dll
 /Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/Debug/net7.0/refint/ScrabbleBot.dll
 /Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.pdb
+/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleBot.deps.json
+/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleBot.dll
+/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleBot.pdb
+/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleUtil.dll
+/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.fsproj.CopyComplete
+/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/Debug/net7.0/ref/ScrabbleBot.dll
