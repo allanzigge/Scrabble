@@ -1,4 +1,4 @@
-﻿namespace YourClientName
+﻿namespace TileTitan
 
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication

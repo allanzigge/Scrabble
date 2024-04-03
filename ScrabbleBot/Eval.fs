@@ -1,11 +1,40 @@
 ﻿// Insert your updated Eval.fs file here from Assignment 7. All modules must be internal.
 
 module internal Eval
-
     open StateMonad
+    (* Code for testing *)
 
-    let add a b = failwith "Not implemented"      
-    let div a b = failwith "Not implemented"      
+    let hello = ('H',4)::('E',1)::('L',1)::('L',1)::('O',1)::[]
+    let state = mkState [("x", 5); ("y", 42)] hello ["_pos_"; "_result_"]
+    let emptyState = mkState [] [] []
+    
+    let add a b = 
+        a >>= (fun x ->
+            b >>= (fun y ->
+                ret (x + y)))
+
+    let sub a b = 
+        a >>= (fun x ->
+            b >>= (fun y ->
+                ret (x - y)))   
+
+    let mul a b = 
+        a >>= (fun x ->
+            b >>= (fun y ->
+                ret (x * y)))  
+    let div a b = 
+        a >>= (fun x ->
+            b >>= (fun y ->
+                if y <> 0 then ret (x / y) else fail DivisionByZero)) 
+
+    let modu a b = 
+        a >>= (fun x ->
+            b >>= (fun y ->
+                if y <> 0 then ret (x / y) else fail DivisionByZero))   
+
+    let isVowels c =
+      let vowels = set ['A';'E';'I';'O';'U']
+      c |> System.Char.ToUpper |> vowels.Contains
 
     type aExp =
         | N of int
@@ -37,7 +66,8 @@ module internal Eval
        | Conj of bExp * bExp  (* boolean conjunction *)
 
        | IsVowel of cExp      (* check for vowel *)
-       | IsConsonant of cExp  (* check for constant *)
+       | IsLetter of cExp     (* check for letter *)
+       | IsDigit of cExp      (* check for digit *)
 
     let (.+.) a b = Add (a, b)
     let (.-.) a b = Sub (a, b)
@@ -57,20 +87,68 @@ module internal Eval
     let (.>=.) a b = ~~(a .<. b)                (* numeric greater than or equal to *)
     let (.>.) a b = ~~(a .=. b) .&&. (a .>=. b) (* numeric greater than *)    
 
-    let arithEval a : SM<int> = failwith "Not implemented"      
+    let rec arithEval a : SM<int> = 
+        match a with
+        | N n ->ret n
+        | V v -> lookup v 
+        | WL ->  wordLength
+        | PV p -> arithEval p >>= pointValue
+        | Add (n, m) -> add (arithEval n) (arithEval m)
+        | Sub (n, m) -> sub (arithEval n) (arithEval m)
+        | Mul (n,m) -> mul (arithEval n) (arithEval m)
+        | Div (n,m) -> div (arithEval n) (arithEval m)
+        | Mod (n,m) -> modu (arithEval n) (arithEval m)
+        | CharToInt c ->  // Handle CharToInt case
+            c |> charEval >>= (fun x ->
+                ret (int x))
+         
+    and charEval a : SM<char> = 
+       match a with
+       | C c -> ret c
+       | ToUpper c ->  charEval c >>= (fun char -> ret (System.Char.ToUpper char))
+       | ToLower c -> charEval c >>= (fun char -> ret (System.Char.ToLower char))
+       | CV cv ->  arithEval cv >>= characterValue 
+       | IntToChar aExp ->
+            aExp |> arithEval >>= (fun intValue ->
+                ret (char intValue))
 
-    let charEval c : SM<char> = failwith "Not implemented"      
+    let rec boolEval b : SM<bool> = 
+        match b with
+        | TT -> ret true
+        | FF -> ret false
+        | AEq (a1,a2) -> 
+            arithEval a1 >>= (fun x ->
+            arithEval a2 >>= (fun y ->
+                ret(x=y)))
+        | ALt (a1,a2) -> 
+            arithEval a1 >>= (fun x ->
+            arithEval a2 >>= (fun y ->
+                ret(x>y)))
+        | Not b -> boolEval b >>= (fun x->
+                            ret (not x))
+        |Conj (a1,a2) -> 
+            boolEval a1 >>= (fun x ->
+            boolEval a2 >>= (fun y ->
+                ret(x && y)))
+        |IsVowel c -> 
+            charEval c >>=(fun x ->
+                ret(isVowels x))
+        |IsLetter c -> 
+            charEval c >>=(fun x ->
+                ret(System.Char.IsLetter x))
+        |IsDigit c -> 
+            charEval c >>=(fun x ->
+                ret(System.Char.IsDigit x))
+                          
 
-    let boolEval b : SM<bool> = failwith "Not implemented"
 
-
-    type stm =                (* statements *)
-    | Declare of string       (* variable declaration *)
-    | Ass of string * aExp    (* variable assignment *)
-    | Skip                    (* nop *)
-    | Seq of stm * stm        (* sequential composition *)
-    | ITE of bExp * stm * stm (* if-then-else statement *)
-    | While of bExp * stm     (* while statement *)
+    type stmnt =                  (* statements *)
+    | Declare of string           (* variable declaration *)
+    | Ass of string * aExp        (* variable assignment *)
+    | Skip                        (* nop *)
+    | Seq of stmnt * stmnt        (* sequential composition *)
+    | ITE of bExp * stmnt * stmnt (* if-then-else statement *)
+    | While of bExp * stmnt       (* while statement *)
 
     let rec stmntEval stmnt : SM<unit> = failwith "Not implemented"
 
@@ -92,24 +170,13 @@ module internal Eval
 
     let stmntEval2 stm = failwith "Not implemented"
 
-(* Part 4 *) 
-
-    type word = (char * int) list
-    type squareFun = word -> int -> int -> Result<int, Error>
+(* Part 4 (Optional) *) 
 
     let stmntToSquareFun stm = failwith "Not implemented"
 
-
-    type coord = int * int
-
-    type boardFun = coord -> Result<squareFun option, Error> 
-
     let stmntToBoardFun stm m = failwith "Not implemented"
 
-    type board = {
-        center        : coord
-        defaultSquare : squareFun
-        squares       : boardFun
-    }
+    type squareStmnt = Map<int, stmnt>
+    let stmntsToSquare stms = failwith "Not implemented"
 
-    let mkBoard c defaultSq boardStmnt ids = failwith "Not implemented"
+    let mkBoard c x boardStmnt ids = failwith "Not implemented"
