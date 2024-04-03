@@ -939,43 +939,36 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\allan\\.nuget\\packages\\": {}
+    "/Users/markushojgaard/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\allan\\Programs\\4. Semester\\FUPRO\\Scrabble\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
+      "projectUniqueName": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj",
       "projectName": "ScrabbleTemplate",
-      "projectPath": "C:\\Users\\allan\\Programs\\4. Semester\\FUPRO\\Scrabble\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
-      "packagesPath": "C:\\Users\\allan\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\allan\\Programs\\4. Semester\\FUPRO\\Scrabble\\ScrabbleTemplate\\obj\\",
+      "projectPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj",
+      "packagesPath": "/Users/markushojgaard/.nuget/packages/",
+      "outputPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleTemplate/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\allan\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/Users/markushojgaard/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net7.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "C:\\Program Files\\dotnet\\sdk\\8.0.202\\FSharp\\library-packs": {},
+        "/usr/local/share/dotnet/sdk/8.0.100/FSharp/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net7.0": {
           "targetAlias": "net7.0",
           "projectReferences": {
-            "C:\\Users\\allan\\Programs\\4. Semester\\FUPRO\\Scrabble\\ScrabbleBot\\ScrabbleBot.fsproj": {
-              "projectPath": "C:\\Users\\allan\\Programs\\4. Semester\\FUPRO\\Scrabble\\ScrabbleBot\\ScrabbleBot.fsproj"
+            "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj": {
+              "projectPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj"
             }
           }
         }
-      },
-      "restoreAuditProperties": {
-        "enableAudit": "true",
-        "auditLevel": "low",
-        "auditMode": "direct"
       }
     },
     "frameworks": {
@@ -1010,12 +1003,26 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[7.0.14, 7.0.14]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.osx-x64",
+            "version": "[7.0.14, 7.0.14]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[7.0.14, 7.0.14]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.202\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.100/RuntimeIdentifierGraph.json"
       }
     }
   }
