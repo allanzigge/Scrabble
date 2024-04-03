@@ -37,3 +37,17 @@ module internal MultiSet
     let foldBack (f : 'a -> uint32 -> 'b -> 'b) (R(s)) (x : 'b) = 
         Map.foldBack (f) s x
     
+    let ofList (_ : 'a list) : MultiSet<'a> = failwith "not implemented"
+    let toList (_ : MultiSet<'a>) : 'a list = failwith "not implemented"
+
+
+    let map (_ : 'a -> 'b) (_ : MultiSet<'a>) : MultiSet<'b> = failwith "not implemented"
+
+    let union (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not implemented"
+    let sum (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not implemented"
+    
+    let subtract (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not implemented"
+    
+    let intersection (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not implemented"
+       
+    
