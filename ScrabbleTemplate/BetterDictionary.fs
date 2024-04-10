@@ -1,5 +1,4 @@
-module Dictionary
-
+module BetterDictionary
 
     type Dict = 
         | Leaf of bool

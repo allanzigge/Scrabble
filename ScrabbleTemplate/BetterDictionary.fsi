@@ -1,4 +1,4 @@
-    module Dictionary
+    module BetterDictionary
 
     type Dict
 
