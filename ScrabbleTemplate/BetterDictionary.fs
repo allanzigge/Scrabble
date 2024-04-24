@@ -1,10 +1,10 @@
 module BetterDictionary
 
-    type Dict = 
+    type Dictionary = 
         | Leaf of bool
-        | Node of bool * System.Collections.Generic.Dictionary<char, Dict>
+        | Node of bool * System.Collections.Generic.Dictionary<char, Dictionary>
     
-    type tmpDict = System.Collections.Generic.Dictionary<char, Dict>
+    type tmpDict = System.Collections.Generic.Dictionary<char, Dictionary>
 
     let empty () = Leaf false // Empty trie
 

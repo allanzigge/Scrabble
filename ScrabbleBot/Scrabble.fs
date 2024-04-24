@@ -1,6 +1,6 @@
 ﻿namespace TileTitan
 
-open BetterDictionary
+
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
 
@@ -44,7 +44,7 @@ module State =
 
     type state = {
         board         : Parser.board
-        dict          : BetterDictionary.Dict
+        dict          : Dictionary.Dict
         playerNumber  : uint32
         hand          : MultiSet.MultiSet<uint32>
         playedWords   : list<list<(coord * (uint32 * (char * int)))>>
@@ -60,45 +60,78 @@ module State =
 module Scrabble =
     open System.Threading
 
-    let playGame cstream pieces (st : State.state) =
+    let playGame cstream (pieces: Map<uint32, tile>) (st : State.state) =
 
         let rec aux (st : State.state) =
-            Print.printHand pieces (State.hand st)
+            Print.printHand (pieces: Map<uint32,tile>) (State.hand st)
 
             // remove the force print when you move on from manual input (or when you have learnt the format)
             // forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
             // let input =  System.Console.ReadLine()
             let lstOfTiles = MultiSet.toList (State.hand st)
-            let lstOfChars : char list = 
-                List.map (fun tile -> 
-                let set = (Map.find tile pieces)
-                match set with 
-                | [(char, _)] -> char
-                | _ -> ' '
-                ) lstOfTiles
+            // let lstOfChars : char list = 
+            //     List.map (fun tile -> 
+            //     let set = (Map.find tile pieces)
+            //     match set with 
+            //     | [(char, _)] -> char
+            //     | _ -> ' '
+            //     ) lstOfTiles
+
+            let idToChar id = 
+                match Map.find id pieces with 
+                | tile -> fst tile.MinimumElement
+
+            let idToCharTouple (id: uint32) = 
+                match Map.find id pieces with 
+                | tile -> tile.MinimumElement
             
-            let rec rmElementFromList (lst: char list) (char: char) : char list =
+            let rec rmElementFromList lst id  =
                 match lst with
-                | x :: lst' when x = char -> lst'
-                | x :: y ::lst' -> x :: rmElementFromList lst' y
+                | x :: lst' when x = id -> lst'
+                | x :: lst' -> x :: rmElementFromList lst' id
                 | _ -> lst
+            
+            let coordGenerator coord direction =
+                    match direction with
+                    | "right" -> ((fst coord)+1 ,snd coord)
+                    | "down" -> (fst coord,(snd coord)+1)
+
+            let rec MoveGenerator (word:uint32 list) (coord: int * int) (dir:string): list<(int * int) * (uint32 * (char * int))> =
+                    match word with
+                    | [] -> []
+                    | x :: xs -> [(coord,(x , (idToCharTouple x) ))] @ MoveGenerator xs (coordGenerator coord dir) dir
+
         
-            let MakeWord (lst : char list) (dict: BetterDictionary.Dict):char list=             
-                if st.playedWords.IsEmpty then
-                    let rec aux lst dict :char list=
-                        List.collect (fun char ->
-                        let temp = step char dict
-                        match temp with
-                        | Some (true,_) -> [char]
-                        | Some (false, dict') ->  char :: aux (rmElementFromList lst char) dict') lst
-                    aux lst dict
-                else []
+            let MakeWord (lst : uint32 list) dict:uint32 list=             
+                // if st.playedWords.IsEmpty then
+                    let rec aux1 lst dict : uint32 list=
+                        List.fold (fun (acc) (id) ->
+                            if acc.IsEmpty then
+                                let temp = ScrabbleUtil.Dictionary.step (idToChar id) dict
+                                match temp with
+                                | Some (true,_) -> id :: acc
+                                | Some (false, dict') -> 
+                                    let help = aux1 (rmElementFromList lst id) dict'
+                                    match help with 
+                                    | [] -> acc
+                                    | _ -> id :: acc @ help
+                                | _ -> []
+                            else
+                                acc
+                        ) [] lst
+                    aux1 lst dict
+                // else []
+            
+            
+            
+
             
             
                      
 
-            let move = RegEx.parseMove input
+            let move = MoveGenerator (MakeWord lstOfTiles (State.dict st)) (0,0) "right" 
 
+           
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
 

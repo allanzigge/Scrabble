@@ -1,11 +1,11 @@
     module BetterDictionary
 
-    type Dict
+    type Dictionary
 
-    val empty : Unit -> Dict 
+    val empty : Unit -> Dictionary 
 
-    val insert : string -> Dict -> Dict 
+    val insert : string -> Dictionary -> Dictionary 
 
-    val lookup : string -> Dict -> bool
+    val lookup : string -> Dictionary -> bool
 
-    val step : char -> Dict -> (bool * Dict) option
+    val step : char -> Dictionary -> (bool * Dictionary) option

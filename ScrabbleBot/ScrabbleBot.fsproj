@@ -14,6 +14,8 @@
     <Compile Include="Eval.fs" />
     <Compile Include="Parser.fsi" />
     <Compile Include="Parser.fs" />
+    <Compile Include="../ScrabbleTemplate/BetterDictionary.fsi" />
+    <Compile Include="../ScrabbleTemplate/BetterDictionary.fs" />
     <Compile Include="Scrabble.fsi" />
     <Compile Include="Scrabble.fs" />
   </ItemGroup>

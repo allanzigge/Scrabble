@@ -39,3 +39,17 @@ C:/Users/allan/Programs/4. Semester/FUPRO/Scrabble/ScrabbleBot/obj/Debug/net7.0/
 /Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleUtil.dll
 /Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.fsproj.CopyComplete
 /Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/Debug/net7.0/ref/ScrabbleBot.dll
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.fsproj.AssemblyReference.cache
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.AssemblyInfoInputs.cache
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.AssemblyInfo.fs
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.fsproj.CoreCompileInputs.cache
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.sourcelink.json
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.dll
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/refint/ScrabbleBot.dll
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.pdb
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleBot.deps.json
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleBot.dll
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleBot.pdb
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/bin/Debug/net7.0/ScrabbleUtil.dll
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ScrabbleBot.fsproj.CopyComplete
+/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/Debug/net7.0/ref/ScrabbleBot.dll
