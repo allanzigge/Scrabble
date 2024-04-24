@@ -1,5 +1,6 @@
 ﻿namespace TileTitan
 
+open BetterDictionary
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
 
@@ -43,7 +44,7 @@ module State =
 
     type state = {
         board         : Parser.board
-        dict          : ScrabbleUtil.Dictionary.Dict
+        dict          : BetterDictionary.Dict
         playerNumber  : uint32
         hand          : MultiSet.MultiSet<uint32>
         playedWords   : list<list<(coord * (uint32 * (char * int)))>>
@@ -67,16 +68,34 @@ module Scrabble =
             // remove the force print when you move on from manual input (or when you have learnt the format)
             // forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
             // let input =  System.Console.ReadLine()
-            let lstOfTiles = MultiSet.toList
-
-            let bigBrainFun (id : uint32) = 
-                match id with
-                | id when id != 0 -> 
-                    
-
-            if st.playedWords.IsEmpty then
-
-              else 
+            let lstOfTiles = MultiSet.toList (State.hand st)
+            let lstOfChars : char list = 
+                List.map (fun tile -> 
+                let set = (Map.find tile pieces)
+                match set with 
+                | [(char, _)] -> char
+                | _ -> ' '
+                ) lstOfTiles
+            
+            let rec rmElementFromList (lst: char list) (char: char) : char list =
+                match lst with
+                | x :: lst' when x = char -> lst'
+                | x :: y ::lst' -> x :: rmElementFromList lst' y
+                | _ -> lst
+        
+            let MakeWord (lst : char list) (dict: BetterDictionary.Dict):char list=             
+                if st.playedWords.IsEmpty then
+                    let rec aux lst dict :char list=
+                        List.collect (fun char ->
+                        let temp = step char dict
+                        match temp with
+                        | Some (true,_) -> [char]
+                        | Some (false, dict') ->  char :: aux (rmElementFromList lst char) dict') lst
+                    aux lst dict
+                else []
+            
+            
+                     
 
             let move = RegEx.parseMove input
 
