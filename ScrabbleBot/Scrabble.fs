@@ -223,10 +223,14 @@ module Scrabble =
                         | (x,y) when y > (snd coord1) -> word , "down"
                         | _ -> word,"right"
 
+            let updateHand (rm:list<coord * (uint32 * (char * int))>) (add: list<uint32 * uint32>) :  MultiSet.MultiSet<uint32> =
+                let afterRemove = List.fold (fun acc x -> MultiSet.removeSingle (fst (snd x)) acc) st.hand rm
+                List.fold (fun acc (x, k) -> MultiSet.add x k acc) afterRemove add
+
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
