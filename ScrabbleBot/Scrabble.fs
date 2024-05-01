@@ -93,7 +93,13 @@ module Scrabble =
                     match Map.find id pieces with 
                     | tile -> fst tile.MinimumElement
 
-                
+                let coordGenerator coord direction =
+                        match direction with
+                        | "right" -> ((fst coord)+1 ,snd coord)
+                        | "left" -> ((fst coord)-1 ,snd coord)
+                        | "down" -> (fst coord,(snd coord)+1)
+                        | "up" -> (fst coord,(snd coord)-1)
+                        
 
                 let idToCharTouple (id: uint32) = 
                     match Map.find id pieces with 
@@ -105,39 +111,124 @@ module Scrabble =
                     | x :: lst' -> x :: rmElementFromList lst' id
                     | _ -> lst
 
-                let findWordFromChar dict id hand =
+
+                let isValidCharPlacement (coord:(int * int)) (char:uint32) (dir:string)=
+                    let oppositeDir = 
+                        match dir with
+                        | "right" -> "left"
+                        | "down" -> "up"
+
+                    let rec list1 nextCoord  = 
+                        let nextChar = Map.tryFind (coordGenerator nextCoord dir) st.coordMap
+                        match nextChar with
+                        | None -> [] //empty
+                        | Some (x) -> [x] @ list1 (coordGenerator nextCoord dir)
+                    
+                    let rec list2 nextCoord = 
+                        let nextChar = Map.tryFind (coordGenerator nextCoord oppositeDir) st.coordMap
+                        match nextChar with
+                        | None -> [] //empty
+                        | Some (x) -> list2 (coordGenerator nextCoord oppositeDir) @ [x]
+                    
+                    let finalList  =
+                        (list2 coord)@[char]@(list1 coord)
+                    
+                    if (finalList.Length = 1) then
+                        true
+                    else 
+                        let word = (List.map idToChar finalList).ToString()
+                        ScrabbleUtil.Dictionary.lookup word st.dict
+                    
+
+                let isNextTileOccupied (dir:string) (coord:(int*int)) =
+                    let flipDir =
+                        match dir with
+                        | "right" -> "down"
+                        | "down" -> "right" 
+                    
+                    let nextTile = coordGenerator coord flipDir
+                    if(st.coordMap.ContainsKey nextTile) then
+                        (true,st.coordMap[coord])
+                    else
+                        (false, 100u)
+                    
+                    
+
+                let findWordFromChar dict id hand dir coord=
                     let fstDict = Dictionary.step (idToChar id) dict
                     match fstDict with 
                     | Some (_,dict') -> 
-                        let rec aux lst dict : uint32 list=
+                        let rec aux lst dict coord : uint32 list=
                             List.fold (fun (acc) (id1) ->
                                 if acc.IsEmpty then
-                                    let temp = ScrabbleUtil.Dictionary.step (idToChar id1) dict
-                                    match temp with
-                                    | Some (true,_) -> id1 :: acc
-                                    | Some (false, dict'') -> 
-                                        let help = aux (rmElementFromList lst id1) dict''
-                                        match help with 
-                                        | [] -> acc
-                                        | _ -> acc @ id1 :: help
-                                    | _ -> []
+                                    let nextTileChar = isNextTileOccupied dir coord
+                                    
+                                    if(fst nextTileChar) then
+                                        let nextDict = ScrabbleUtil.Dictionary.step (idToChar (snd nextTileChar)) dict
+                                        match nextDict with
+                                        | Some(x) ->
+                                            if(isValidCharPlacement (coordGenerator coord dir) (snd nextTileChar) dir) then
+                                                match x with
+                                                | (true,_) -> id1 :: acc
+                                                | (false, dict'') -> 
+                                                    let help = aux (lst) dict'' (coordGenerator coord dir)//Checks if the recursive rabbithole yielded any word
+                                                    match help with 
+                                                    | [] -> acc
+                                                    | _ -> acc @ id1 :: help
+                                            else
+                                                acc
+                                        | _ -> []
+                                    else
+                                        let nextDict = ScrabbleUtil.Dictionary.step (idToChar id1) dict
+                                        match nextDict with
+                                        | Some(x) ->
+                                            if(isValidCharPlacement (coordGenerator coord dir) id1 dir) then
+                                                match x with
+                                                | (true,_) -> id1 :: acc
+                                                | (false, dict'') -> 
+                                                    let help = aux (rmElementFromList lst id1) dict'' (coordGenerator coord dir)//Checks if the recursive rabbithole yielded any word
+                                                    match help with 
+                                                    | [] -> acc
+                                                    | _ -> acc @ id1 :: help
+                                            else
+                                                acc
+                                        | _ -> []
                                 else
                                     acc
                             ) [] lst
-                        let word = aux hand dict'
+                        let word = aux hand dict' coord
                         if word.IsEmpty then
                             []
                         else
                             id :: word
                     | _ -> []
 
+                // let findWordFromyuChar dict id hand =
+                //     let fstDict = Dictionary.step (idToChar id) dict
+                //     match fstDict with 
+                //     | Some (_,dict') -> 
+                //         let rec aux lst dict : uint32 list=
+                //             List.fold (fun (acc) (id1) ->
+                //                 if acc.IsEmpty then
+                //                     let temp = ScrabbleUtil.Dictionary.step (idToChar id1) dict
+                //                     match temp with
+                //                     | Some (true,_) -> id1 :: acc
+                //                     | Some (false, dict'') -> 
+                //                         let help = aux (rmElementFromList lst id1) dict'' //Checks if the recursive rabbithole yielded any word
+                //                         match help with 
+                //                         | [] -> acc
+                //                         | _ -> acc @ id1 :: help
+                //                     | _ -> []
+                //                 else
+                //                     acc
+                //             ) [] lst
+                //         let word = aux hand dict'
+                //         if word.IsEmpty then
+                //             []
+                //         else
+                //             id :: word
+                //     | _ -> []
 
- 
-                
-                let coordGenerator coord direction =
-                        match direction with
-                        | "right" -> ((fst coord)+1 ,snd coord)
-                        | "down" -> (fst coord,(snd coord)+1)
 
                 let rec MoveGenerator (word:(uint32 list*(int*int))) (dir: string): list<(int * int) * (uint32 * (char * int))> =
                     match  (fst word) with
@@ -179,14 +270,13 @@ module Scrabble =
                             ) [] lst
                         (aux1 lst dict,(0,0)),"right"
                     else 
-                        // []
                         let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))> * string>) (hand: uint32 list) dict : ((uint32 list*(int*int)) * string)=
                             List.fold (fun (acc:((uint32 list*(int*int)) * string)) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
                                     if (fst(fst acc)).IsEmpty then
                                         //folds over the letters of the a played word, to give a start letter to our new word
-                                        let returnedWord = (List.fold (fun (acc1:uint32 list * (int*int)) letter ->
+                                        let returnedWord = (List.fold (fun (acc1:(uint32 list * (int*int))) letter ->
                                             if (fst acc1).IsEmpty then
-                                                ((fst acc1) @ findWordFromChar dict (fst (snd letter)) hand, fst letter) //returns the builded word with its start coord
+                                                (((fst acc1) @ findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter))) //returns the builded word with its start coord
                                             else
                                                 acc1
                                         ) ([],(0,0)) (fst w))
@@ -236,7 +326,7 @@ module Scrabble =
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st) (State.coordMap)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords @ [directionParser ms]) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
