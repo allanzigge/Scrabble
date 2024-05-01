@@ -76,6 +76,8 @@ module Scrabble =
                 debugPrint("-.-.-.-.-.-. My turn, i am player number" + string (State.playerNumber st) + " .-.-.-.-.-.-\n")
                 Print.printHand (pieces: Map<uint32,tile>) (State.hand st)
 
+                debugPrint("-.-.-.-.-.-. Player number"+ string (State.playerNumber st) + "has coodmap:" + string (st.coordMap) + " .-.-.-.-.-.-\n")
+
                 // remove the force print when you move on from manual input (or when you have learnt the format)
                 // forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
                 // let input =  System.Console.ReadLine()
@@ -99,6 +101,11 @@ module Scrabble =
                         | "left" -> ((fst coord)-1 ,snd coord)
                         | "down" -> (fst coord,(snd coord)+1)
                         | "up" -> (fst coord,(snd coord)-1)
+
+                let flipDir dir = 
+                    match dir with
+                    | "right" -> "down"
+                    | "down" -> "right"
                         
 
                 let idToCharTouple (id: uint32) = 
@@ -141,12 +148,8 @@ module Scrabble =
                     
 
                 let isNextTileOccupied (dir:string) (coord:(int*int)) =
-                    let flipDir =
-                        match dir with
-                        | "right" -> "down"
-                        | "down" -> "right" 
                     
-                    let nextTile = coordGenerator coord flipDir
+                    let nextTile = coordGenerator coord (flipDir dir)
                     if(st.coordMap.ContainsKey nextTile) then
                         (true,st.coordMap[coord])
                     else
@@ -167,14 +170,14 @@ module Scrabble =
                                         let nextDict = ScrabbleUtil.Dictionary.step (idToChar (snd nextTileChar)) dict
                                         match nextDict with
                                         | Some(x) ->
-                                            if(isValidCharPlacement (coordGenerator coord dir) (snd nextTileChar) dir) then
+                                            if(isValidCharPlacement (coordGenerator coord (flipDir dir)) (snd nextTileChar) dir) then
                                                 match x with
-                                                | (true,_) -> id1 :: acc
+                                                | (true,_) -> 100u :: acc
                                                 | (false, dict'') -> 
                                                     let help = aux (lst) dict'' (coordGenerator coord dir)//Checks if the recursive rabbithole yielded any word
                                                     match help with 
                                                     | [] -> acc
-                                                    | _ -> acc @ id1 :: help
+                                                    | _ -> acc @ 100u :: help //Set the "id" to 100u, such that the moveGenerator can avoid using it, since it is already on the board
                                             else
                                                 acc
                                         | _ -> []
@@ -182,7 +185,7 @@ module Scrabble =
                                         let nextDict = ScrabbleUtil.Dictionary.step (idToChar id1) dict
                                         match nextDict with
                                         | Some(x) ->
-                                            if(isValidCharPlacement (coordGenerator coord dir) id1 dir) then
+                                            if(isValidCharPlacement (coordGenerator coord (flipDir dir)) id1 dir) then
                                                 match x with
                                                 | (true,_) -> id1 :: acc
                                                 | (false, dict'') -> 
@@ -233,6 +236,7 @@ module Scrabble =
                 let rec MoveGenerator (word:(uint32 list*(int*int))) (dir: string): list<(int * int) * (uint32 * (char * int))> =
                     match  (fst word) with
                     | [] -> []
+                    | x :: xs when x = 100u -> MoveGenerator (xs,(coordGenerator (snd  word) dir)) dir //If it hits a 100u, it is a char which is already on the board, and we don't want to play that
                     | x :: xs -> [((snd  word),(x , (idToCharTouple x) ))] @ MoveGenerator (xs,(coordGenerator (snd  word) dir)) dir
 
                 let MakeMove (word:((uint32 list*(int*int)) * string)) : list<(int * int) * (uint32 * (char * int))> =
@@ -326,6 +330,7 @@ module Scrabble =
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
+                debugPrint(sprintf "-.-.-.-.-.-.-.- ms: " + string (ms) + "-.-.-.-.-.-.-.-")
                 let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords @ [directionParser ms]) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms)
                 // This state needs to be updated
                 aux st'
