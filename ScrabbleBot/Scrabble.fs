@@ -46,7 +46,7 @@ module State =
         dict          : Dictionary.Dict
         playerNumber  : uint32
         hand          : MultiSet.MultiSet<uint32>
-        playedWords   : list<list<((int * int) * (uint32 * (char * int)))>>
+        playedWords   : list<(list<((int * int) * (uint32 * (char * int)))> * string)>
         playerTurn    : uint32
         numPlayers : uint32
     }
@@ -128,18 +128,36 @@ module Scrabble =
                             id :: word
                     | _ -> []
 
+
+ 
                 
                 let coordGenerator coord direction =
                         match direction with
                         | "right" -> ((fst coord)+1 ,snd coord)
                         | "down" -> (fst coord,(snd coord)+1)
 
-                let rec MoveGenerator (word:uint32 list) (coord: int * int) (dir:string): list<(int * int) * (uint32 * (char * int))> =
-                        match word with
-                        | [] -> []
-                        | x :: xs -> [(coord,(x , (idToCharTouple x) ))] @ MoveGenerator xs (coordGenerator coord dir) dir
+                let rec MoveGenerator (word:(uint32 list*(int*int))) (dir: string): list<(int * int) * (uint32 * (char * int))> =
+                    match  (fst word) with
+                    | [] -> []
+                    | x :: xs -> [((snd  word),(x , (idToCharTouple x) ))] @ MoveGenerator (xs,(coordGenerator (snd  word) dir)) dir
 
-                let MakeWord (lst : uint32 list) dict: (uint32 list)=             
+                let MakeMove (word:((uint32 list*(int*int)) * string)) : list<(int * int) * (uint32 * (char * int))> =
+                    let dir =
+                        match snd word with
+                        | "right" -> "down"
+                        | "down" -> "right" 
+
+                    let result = MoveGenerator (fst word) dir
+
+                    if st.playedWords.IsEmpty then 
+                        result
+                    else
+                        match result with
+                        | x :: xs -> xs
+                        | [] -> []
+
+
+                let MakeWord (lst : uint32 list) dict: ((uint32 list*(int*int)) * string)=             
                     if st.playedWords.IsEmpty then
                         let rec aux1 lst dict : uint32 list=
                             List.fold (fun (acc) (id) ->
@@ -156,28 +174,30 @@ module Scrabble =
                                 else
                                     acc
                             ) [] lst
-                        aux1 lst dict
+                        (aux1 lst dict,(0,0)),"right"
                     else 
                         // []
-                        let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))>>) (hand: uint32 list) dict : uint32 list=
-                            List.fold (fun (acc:uint32 list) (w:list<((int * int) * (uint32 * (char * int)))>) ->
-                                    if acc.IsEmpty then
-                                        acc @ List.fold (fun acc1 letter ->
-                                            if acc1.IsEmpty then
-                                                acc1 @ findWordFromChar dict (fst (snd letter)) hand
+                        let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))> * string>) (hand: uint32 list) dict : ((uint32 list*(int*int)) * string)=
+                            List.fold (fun (acc:((uint32 list*(int*int)) * string)) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
+                                    if (fst(fst acc)).IsEmpty then
+                                        //folds over the letters of the a played word, to give a start letter to our new word
+                                        let returnedWord = (List.fold (fun (acc1:uint32 list * (int*int)) letter ->
+                                            if (fst acc1).IsEmpty then
+                                                ((fst acc1) @ findWordFromChar dict (fst (snd letter)) hand, fst letter) //returns the builded word with its start coord
                                             else
                                                 acc1
-                                        ) [] w
+                                        ) ([],(0,0)) (fst w))
+                                        (((fst(fst acc))@ fst returnedWord, snd returnedWord),snd w) //return builded word with direction
                                     else
                                         acc
-                            ) [] pw
+                            ) (([],(0,0)),"") pw
                         aux2 (st.playedWords) lst dict
 
                 
                 
                         
 
-                let move = MoveGenerator (MakeWord lstOfTiles (State.dict st)) (0,0) "right"
+                let move = MakeMove (MakeWord lstOfTiles (State.dict st))
                    
                 
                 if move.IsEmpty then 
@@ -191,15 +211,27 @@ module Scrabble =
                 debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
             let msg = recv cstream
+
+            let directionParser (word: list<((int * int) * (uint32 * (char * int)))>) : list<((int * int) * (uint32 * (char * int)))> * string =
+                    if word.Length = 1 then
+                        word,"right"
+                    else
+                        let coord1 = (fst word[0])
+                        let coord2 = (fst word[1])
+                        match coord2 with
+                        | (x,y) when x > (fst coord1) -> word , "right"
+                        | (x,y) when y > (snd coord1) -> word , "down"
+                        | _ -> word,"right"
+
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [ms]) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [ms]) ((pid % State.numPlayers st) + 1u) (State.numPlayers st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [directionParser ms]) ((pid % State.numPlayers st) + 1u) (State.numPlayers st)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
