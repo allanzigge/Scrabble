@@ -139,7 +139,7 @@ module Scrabble =
                         | [] -> []
                         | x :: xs -> [(coord,(x , (idToCharTouple x) ))] @ MoveGenerator xs (coordGenerator coord dir) dir
 
-                let MakeWord (lst : uint32 list) dict: uint32 list=             
+                let MakeWord (lst : uint32 list) dict: (uint32 list)=             
                     if st.playedWords.IsEmpty then
                         let rec aux1 lst dict : uint32 list=
                             List.fold (fun (acc) (id) ->
