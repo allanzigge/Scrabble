@@ -49,9 +49,10 @@ module State =
         playedWords   : list<(list<((int * int) * (uint32 * (char * int)))> * string)>
         playerTurn    : uint32
         numPlayers : uint32
+        coordMap: Map<(int*int),uint32>
     }
 
-    let mkState b d pn h pw pt np= {board = b; dict = d;  playerNumber = pn; hand = h; playedWords = pw; playerTurn = pt ; numPlayers = np}
+    let mkState b d pn h pw pt np cm= {board = b; dict = d;  playerNumber = pn; hand = h; playedWords = pw; playerTurn = pt ; numPlayers = np; coordMap = cm}
 
     let board st         = st.board
     let dict st          = st.dict
@@ -60,6 +61,8 @@ module State =
 
     let numPlayers st = st.numPlayers
     let playedWords = []
+
+    let coordMap = Map.empty
     let playerTurn st            = st.playerTurn
 
 module Scrabble =
@@ -227,25 +230,28 @@ module Scrabble =
                 let afterRemove = List.fold (fun acc x -> MultiSet.removeSingle (fst (snd x)) acc) st.hand rm
                 List.fold (fun acc (x, k) -> MultiSet.add x k acc) afterRemove add
 
+            let updateCoordMap (w:list<(int * int) * (uint32 * (char * int))>) =
+                List.fold (fun (acc:Map<int * int,uint32>) (x, (k,_)) -> Map.add x k acc) st.coordMap w
+
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st) (State.coordMap)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [directionParser ms]) ((pid % State.numPlayers st) + 1u) (State.numPlayers st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [directionParser ms]) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (State.coordMap)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPassed (pid)) ->
                 (* Somebody passed. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (State.coordMap)
                 // This state needs to be updated
                 aux st'
             | RCM (CMGameOver _) -> ()
@@ -280,5 +286,5 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet [] playerTurn numPlayers)
+        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet [] playerTurn numPlayers Map.empty)
         
