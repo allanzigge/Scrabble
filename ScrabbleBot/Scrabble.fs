@@ -152,7 +152,7 @@ module Scrabble =
                     
                     let nextTile = coordGenerator coord dir
                     if(st.coordMap.ContainsKey nextTile) then
-                        (true,st.coordMap[coord])
+                        (true,st.coordMap[nextTile])
                     else
                         (false, 100u)
                 
@@ -314,6 +314,7 @@ module Scrabble =
                                                     debugPrint "Empty sgowegoweigjsoegij"
                                                     (((fst (fst acc1)) @ findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)),(flipDir (snd w))) //returns the builded word with its start coord
                                                 else 
+                                                    debugPrint ("Not empty -------- " + string wordFromChar)
                                                     (((fst (fst acc1)) @ wordFromChar,(fst letter)), (snd w)) //returns the builded word with its start coord
                                             else
                                                 acc1
@@ -322,6 +323,7 @@ module Scrabble =
                                     else
                                         acc
                             ) (([],(0,0)),"") pw
+                        debugPrint ("list --------" + string (aux2 (st.playedWords) lst dict))
                         aux2 (st.playedWords) lst dict
 
                 
