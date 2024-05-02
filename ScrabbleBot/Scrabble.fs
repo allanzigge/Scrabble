@@ -160,12 +160,15 @@ module Scrabble =
                     let opDir = oppositeDir (flipDir dir)
                     //The mkListOfIds keeps going in the opposite direction and adds any id's it meets
                     // to a list (creating the word the starting char possibly is a part of)
-                    let rec mkListOfIds(dir:string) (coord2:(int*int))=
-                        let nextTileChar = isNextTileOccupied dir coord2
+                    let rec mkListOfIds(dir1:string) (coord2:(int*int))=
+                        debugPrint ("coordooordcorood " + string (coord2))
+                        debugPrint (dir1)
+                        let nextTileChar = isNextTileOccupied dir1 coord2
                         match nextTileChar with
-                        | (true,char) -> char :: mkListOfIds dir (coordGenerator coord2 opDir)
+                        | (true,char) -> mkListOfIds dir1 (coordGenerator coord2 dir1) @ [char]
                         | (false,_) -> []
                     let listOfIds = (mkListOfIds opDir coord)
+                    debugPrint ("ididididididididid" + string (listOfIds))
                     //Folding over the list of id's and stepping through their dictionaries should
                     //give the start dict, now influences by possible other chars which it's already 
                     //are making a word with
@@ -200,7 +203,7 @@ module Scrabble =
                                                 match x with
                                                 | (true,_) -> 100u :: acc
                                                 | (false, dict'') -> 
-                                                    let help = aux (lst) dict'' (coordGenerator coord dir)//Checks if the recursive rabbithole yielded any word
+                                                    let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
                                                     match help with 
                                                     | [] -> acc
                                                     | _ -> acc @ 100u :: help //Set the "id" to 100u, such that the moveGenerator can avoid using it, since it is already on the board
@@ -215,7 +218,7 @@ module Scrabble =
                                                 match x with
                                                 | (true,_) -> id1 :: acc
                                                 | (false, dict'') -> 
-                                                    let help = aux (rmElementFromList lst id1) dict'' (coordGenerator coord dir)//Checks if the recursive rabbithole yielded any word
+                                                    let help = aux (rmElementFromList lst id1) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
                                                     match help with 
                                                     | [] -> acc
                                                     | _ -> acc @ id1 :: help
@@ -304,13 +307,18 @@ module Scrabble =
                             List.fold (fun (acc:((uint32 list*(int*int)) * string)) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
                                     if (fst(fst acc)).IsEmpty then
                                         //folds over the letters of the a played word, to give a start letter to our new word
-                                        let returnedWord = (List.fold (fun (acc1:(uint32 list * (int*int))) letter ->
-                                            if (fst acc1).IsEmpty then
-                                                (((fst acc1) @ findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter))) //returns the builded word with its start coord
+                                        let returnedWord = (List.fold (fun (acc1:((uint32 list * (int*int))*string)) letter ->
+                                            if (fst (fst acc1)).IsEmpty then
+                                                let wordFromChar = findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter)
+                                                if wordFromChar.IsEmpty then
+                                                    debugPrint "Empty sgowegoweigjsoegij"
+                                                    (((fst (fst acc1)) @ findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)),(flipDir (snd w))) //returns the builded word with its start coord
+                                                else 
+                                                    (((fst (fst acc1)) @ wordFromChar,(fst letter)), (snd w)) //returns the builded word with its start coord
                                             else
                                                 acc1
-                                        ) ([],(0,0)) (fst w))
-                                        (((fst(fst acc))@ fst returnedWord, snd returnedWord),snd w) //return builded word with direction
+                                        ) (([],(0,0)), "") (fst w))
+                                        (((fst(fst acc))@ fst (fst returnedWord), snd (fst returnedWord)),snd returnedWord) //return builded word with direction
                                     else
                                         acc
                             ) (([],(0,0)),"") pw
@@ -367,12 +375,12 @@ module Scrabble =
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (State.coordMap)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPassed (pid)) ->
                 (* Somebody passed. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (State.coordMap)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap)
                 // This state needs to be updated
                 aux st'
             | RCM (CMGameOver _) -> ()
