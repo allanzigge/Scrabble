@@ -106,6 +106,11 @@ module Scrabble =
                     match dir with
                     | "right" -> "down"
                     | "down" -> "right"
+                
+                let oppositeDir dir = 
+                        match dir with
+                        | "right" -> "left"
+                        | "down" -> "up"
                         
 
                 let idToCharTouple (id: uint32) = 
@@ -120,10 +125,6 @@ module Scrabble =
 
 
                 let isValidCharPlacement (coord:(int * int)) (char:uint32) (dir:string)=
-                    let oppositeDir = 
-                        match dir with
-                        | "right" -> "left"
-                        | "down" -> "up"
 
                     let rec list1 nextCoord  = 
                         let nextChar = Map.tryFind (coordGenerator nextCoord dir) st.coordMap
@@ -132,10 +133,10 @@ module Scrabble =
                         | Some (x) -> [x] @ list1 (coordGenerator nextCoord dir)
                     
                     let rec list2 nextCoord = 
-                        let nextChar = Map.tryFind (coordGenerator nextCoord oppositeDir) st.coordMap
+                        let nextChar = Map.tryFind (coordGenerator nextCoord (oppositeDir dir)) st.coordMap
                         match nextChar with
                         | None -> [] //empty
-                        | Some (x) -> list2 (coordGenerator nextCoord oppositeDir) @ [x]
+                        | Some (x) -> list2 (coordGenerator nextCoord (oppositeDir dir)) @ [x]
                     
                     let finalList  =
                         (list2 coord)@[char]@(list1 coord)
@@ -149,22 +150,47 @@ module Scrabble =
 
                 let isNextTileOccupied (dir:string) (coord:(int*int)) =
                     
-                    let nextTile = coordGenerator coord (flipDir dir)
+                    let nextTile = coordGenerator coord dir
                     if(st.coordMap.ContainsKey nextTile) then
                         (true,st.coordMap[coord])
                     else
                         (false, 100u)
+                
+                let lookInOppositeDirection (dir:string)  (coord:(int*int)) dict=
+                    let opDir = oppositeDir (flipDir dir)
+                    //The mkListOfIds keeps going in the opposite direction and adds any id's it meets
+                    // to a list (creating the word the starting char possibly is a part of)
+                    let rec mkListOfIds(dir:string) (coord2:(int*int))=
+                        let nextTileChar = isNextTileOccupied dir coord2
+                        match nextTileChar with
+                        | (true,char) -> char :: mkListOfIds dir (coordGenerator coord2 opDir)
+                        | (false,_) -> []
+                    let listOfIds = (mkListOfIds opDir coord)
+                    //Folding over the list of id's and stepping through their dictionaries should
+                    //give the start dict, now influences by possible other chars which it's already 
+                    //are making a word with
+                    List.fold (fun acc id ->
+                        let acc =
+                            match (ScrabbleUtil.Dictionary.step (idToChar id) acc) with
+                            | Some(true, dict) -> dict
+                            | Some(false, dict) -> dict
+                            | _ -> acc
+                        acc
+                    ) dict listOfIds
+
+
+
                     
                     
 
                 let findWordFromChar dict id hand dir coord=
-                    let fstDict = Dictionary.step (idToChar id) dict
+                    let fstDict =ScrabbleUtil.Dictionary.step (idToChar id) (lookInOppositeDirection dir coord dict)
                     match fstDict with 
                     | Some (_,dict') -> 
                         let rec aux lst dict coord : uint32 list=
                             List.fold (fun (acc) (id1) ->
                                 if acc.IsEmpty then
-                                    let nextTileChar = isNextTileOccupied dir coord
+                                    let nextTileChar = isNextTileOccupied (flipDir dir) coord
                                     
                                     if(fst nextTileChar) then
                                         let nextDict = ScrabbleUtil.Dictionary.step (idToChar (snd nextTileChar)) dict
