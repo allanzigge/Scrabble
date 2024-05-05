@@ -187,22 +187,27 @@ module Scrabble =
                     //løb playedWord igennem
                     //fold - kig i hvert ord check om startCoord = første coord i ordet 
                     // andet fold, check om vi rammer thisCoord
-                    List.fold(fun (acc: bool) (word:list<(int * int) * (uint32 * (char * int))> * string) -> 
-                        if acc then 
-                            acc
-                        else
-                            match startCoord with 
-                            | x when x = (fst ((fst word)[0])) -> 
-                                List.fold(fun acc letter ->
-                                    if acc then 
-                                        acc
-                                    else 
-                                        match fst letter with 
-                                        |c when c = thisCoord -> true
-                                        | _ -> acc
-                                ) false (fst word) 
-                            |_ -> acc
-                    )  false st.playedWords  
+                    // debugPrint("startCoord: " + string startCoord + "thisCoord: " + string thisCoord)
+                    // List.fold(fun (acc: bool) (word:list<(int * int) * (uint32 * (char * int))> * string) -> 
+                    //     if acc then 
+                    //         acc
+                    //     else
+                    //         match startCoord with 
+                    //         | x when x = (fst ((fst word)[0])) -> 
+                    //             List.fold(fun acc letter ->
+                    //                 if acc then 
+                    //                     acc
+                    //                 else 
+                    //                     match fst letter with 
+                    //                     |c when c = thisCoord -> true
+                    //                     | _ -> acc
+                    //             ) false (fst word) 
+                    //         |_ -> acc
+                    // )  false st.playedWords  
+                    if st.coordMap.ContainsKey(startCoord) && st.coordMap.ContainsKey(thisCoord) then
+                        true
+                    else
+                        false
 
 
 
@@ -224,12 +229,14 @@ module Scrabble =
                                             if(isValidCharPlacement (coordGenerator coord (flipDir dir)) (snd nextTileChar) dir) then
                                                 match x with
                                                 | (true, dict'') ->
-                                                    if isWordInPlay startCoord (coordGenerator coord (flipDir dir)) then   
+                                                    if isWordInPlay startCoord (coordGenerator coord (flipDir dir)) then
+                                                        // debugPrint("in trueee")   
                                                         let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
                                                         match help with 
                                                         | [] -> acc
                                                         | _ -> acc @ 100u :: help //Set the "id" to 100u, such that the moveGenerator can avoid using it, since it is already on the board
                                                     else
+                                                        // debugPrint("in faaaaalse")
                                                         100u :: acc
                                                 | (false, dict'') -> 
                                                     let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
@@ -245,7 +252,11 @@ module Scrabble =
                                         | Some(x) ->
                                             if(isValidCharPlacement (coordGenerator coord (flipDir dir)) id1 dir) then
                                                 match x with
-                                                | (true,_) -> id1 :: acc
+                                                | (true,_) -> 
+                                                    if (fst (isNextTileOccupied (flipDir dir) (coordGenerator coord (flipDir dir)))) then
+                                                        acc
+                                                    else
+                                                        id1 :: acc
                                                 | (false, dict'') -> 
                                                     let help = aux (rmElementFromList lst id1) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
                                                     match help with 
@@ -272,10 +283,7 @@ module Scrabble =
                     | x :: xs -> [((snd  word),(x , (idToCharTouple x) ))] @ MoveGenerator (xs,(coordGenerator (snd  word) dir)) dir
 
                 let MakeMove (word:((uint32 list*(int*int)) * string)) : list<(int * int) * (uint32 * (char * int))> =
-                    let dir =
-                        match snd word with
-                        | "right" -> "down"
-                        | "down" -> "right" 
+                    let dir = snd word
 
                     let result = MoveGenerator (fst word) dir
 
@@ -311,13 +319,14 @@ module Scrabble =
                                 //folds over the letters of the a played word, to give a start letter to our new word
                                 let returnedWord = 
                                     List.fold (fun (acc1:List<((uint32 list * (int*int))*string)>) letter ->
-                                        acc1 @ [(findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (snd w)] @ [(findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)),(flipDir (snd w))]
+                                        acc1 @ [(findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (flipDir (snd w))] @ [(findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)), (snd w)]
                                         //returns the builded word with its start coord
                                     ) [(([],(0,0)), "")] (fst w)
                                 acc @ returnedWord //return builded word with direction
                                 
                             ) [(([],(0,0)),"")] pw 
                         let listOfPossibleWords =  aux2 (st.playedWords) lst1 dict
+                        // printfn "Possible word list: %A" listOfPossibleWords
                         let longestWord = 
                             List.fold(fun (acc:((uint32 list*(int*int)) * string)) (word: ((uint32 list*(int*int)) * string)) ->
                             match word with
