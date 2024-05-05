@@ -50,9 +50,10 @@ module State =
         playerTurn    : uint32
         numPlayers : uint32
         coordMap: Map<(int*int),uint32>
+        timeout: uint32 option
     }
 
-    let mkState b d pn h pw pt np cm= {board = b; dict = d;  playerNumber = pn; hand = h; playedWords = pw; playerTurn = pt ; numPlayers = np; coordMap = cm}
+    let mkState b d pn h pw pt np cm t = {board = b; dict = d;  playerNumber = pn; hand = h; playedWords = pw; playerTurn = pt ; numPlayers = np; coordMap = cm; timeout = t}
 
     let board st         = st.board
     let dict st          = st.dict
@@ -65,6 +66,8 @@ module State =
     let coordMap = Map.empty
     let playerTurn st            = st.playerTurn
 
+    let timeout st = st.timeout
+
 module Scrabble =
     open System.Threading
 
@@ -73,6 +76,7 @@ module Scrabble =
         let rec aux (st : State.state) =
 
             if (State.playerTurn st) = (State.playerNumber st) then
+                
                 debugPrint("-.-.-.-.-.-. My turn, i am player number" + string (State.playerNumber st) + " .-.-.-.-.-.-\n")
                 Print.printHand (pieces: Map<uint32,tile>) (State.hand st)
 
@@ -87,7 +91,7 @@ module Scrabble =
                 //     | [(char, _)] -> char
                 //     | _ -> ' '
                 //     ) lstOfTiles
-               
+            
 
                 let idToChar id = 
                     match Map.find id pieces with 
@@ -336,20 +340,54 @@ module Scrabble =
                             ) (([],(0,0)),"") listOfPossibleWords
                         longestWord
                 
-                        
+                
+                let cts = new System.Threading.CancellationTokenSource()
+                // let token = cts.Token
+
+                // Define an asynchronous workflow to handle timeout
+                let timeoutTask = async {
+                    match st.timeout with
+                    | Some(x) -> 
+                        do! Async.Sleep(int x)  // Wait for the timeout duration
+                        if not cts.Token.IsCancellationRequested then
+                            debugPrint "Timeout occurred"
+                            cts.Cancel()
+                            send cstream SMPass // Pass the turn
+                    | None -> debugPrint "No timeout specified"
+                }
+
+                // Start the timeout task
+                // let timeoutCancellation = Async.StartChild(timeoutTask, cancellationToken = token)
 
                 let move = MakeMove (MakeWord lstOfTiles (State.dict st))
-                   
                 
-                if move.IsEmpty then 
-                    send cstream SMPass
-                else
-                    debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-                    debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
-                    send cstream (SMPlay move)
+                // Your doThing function made asynchronous
+                let doThingAsync : Async<unit> =
+                    async {
+                        let move = MakeMove (MakeWord lstOfTiles (State.dict st))
+                        if move.IsEmpty then 
+                            send cstream SMPass
+                        else
+                            debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+                            debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
+                            send cstream (SMPlay move)
+                    }
+
+                Async.Start(doThingAsync, cts.Token)
+                Async.Start(timeoutTask)
+
+                // // Perform the asynchronous operation and cancel timeout task if completed within time
+                // async {
+                //     do! Async.Sleep 0 // Yield to scheduler to allow other work to be done
+                //     let! task = Async.StartChild(doThingAsync(), cancellationToken = token)
+                //     if task.IsCompleted then
+                //         // Move completed within time, cancel the timeout task
+                //         cts.Cancel()
+                // } |> Async.RunSynchronously
 
             
                 debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+
 
             let msg = recv cstream
 
@@ -374,28 +412,27 @@ module Scrabble =
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords @ [directionParser ms]) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords @ [directionParser ms]) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms) (State.timeout st)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [directionParser ms]) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [directionParser ms]) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms) (State.timeout st)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap) (State.timeout st)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPassed (pid)) ->
                 (* Somebody passed. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap) (State.timeout st)
                 // This state needs to be updated
                 aux st'
             | RCM (CMGameOver _) -> ()
             | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
-
 
 
         aux st
@@ -424,5 +461,5 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet [] playerTurn numPlayers Map.empty)
+        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet [] playerTurn numPlayers Map.empty timeout)
         
