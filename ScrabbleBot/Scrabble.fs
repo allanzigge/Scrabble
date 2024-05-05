@@ -156,7 +156,7 @@ module Scrabble =
                     else
                         (false, 100u)
                 
-                let lookInOppositeDirection (dir:string)  (coord:(int*int)) dict=
+                let lookInOppositeDirection (dir:string)  (coord:(int*int)) dict =
                     let opDir = oppositeDir (flipDir dir)
                     //The mkListOfIds keeps going in the opposite direction and adds any id's it meets
                     // to a list (creating the word the starting char possibly is a part of)
@@ -165,29 +165,56 @@ module Scrabble =
                         debugPrint (dir1)
                         let nextTileChar = isNextTileOccupied dir1 coord2
                         match nextTileChar with
-                        | (true,char) -> mkListOfIds dir1 (coordGenerator coord2 dir1) @ [char]
-                        | (false,_) -> []
+                        | (true,char) -> 
+                            let tempReturn =  (mkListOfIds dir1 (coordGenerator coord2 dir1))
+                            (fst tempReturn), ((snd tempReturn) @ [char])
+                        | (false,_) -> (coord2, [])
                     let listOfIds = (mkListOfIds opDir coord)
                     debugPrint ("ididididididididid" + string (listOfIds))
                     //Folding over the list of id's and stepping through their dictionaries should
                     //give the start dict, now influences by possible other chars which it's already 
                     //are making a word with
-                    List.fold (fun acc id ->
-                        let acc =
-                            match (ScrabbleUtil.Dictionary.step (idToChar id) acc) with
-                            | Some(true, dict) -> dict
-                            | Some(false, dict) -> dict
-                            | _ -> acc
-                        acc
-                    ) dict listOfIds
+                    let returnDictionary = 
+                        List.fold (fun acc id ->
+                            let acc =
+                                match (ScrabbleUtil.Dictionary.step (idToChar id) acc) with
+                                | Some(true, dict) -> dict
+                                | Some(false, dict) -> dict
+                                | _ -> acc
+                            acc
+                        ) dict (snd listOfIds)
+                    (fst listOfIds), returnDictionary
 
 
 
                     
-                    
+                let isWordInPlay startCoord thisCoord :bool =
+                    //løb playedWord igennem
+                    //fold - kig i hvert ord check om startCoord = første coord i ordet 
+                    // andet fold, check om vi rammer thisCoord
+                    List.fold(fun (acc: bool) (word:list<(int * int) * (uint32 * (char * int))> * string) -> 
+                        if acc then 
+                            acc
+                        else
+                            match startCoord with 
+                            | x when x = (fst ((fst word)[0])) -> 
+                                List.fold(fun acc letter ->
+                                    if acc then 
+                                        acc
+                                    else 
+                                        match fst letter with 
+                                        |c when c = thisCoord -> true
+                                        | _ -> acc
+                                ) false (fst word) 
+                            |_ -> acc
+                    )  false st.playedWords  
+
+
 
                 let findWordFromChar dict id hand dir coord=
-                    let fstDict =ScrabbleUtil.Dictionary.step (idToChar id) (lookInOppositeDirection dir coord dict)
+                    let klamTuple = (lookInOppositeDirection dir coord dict)
+                    let startCoord = fst klamTuple
+                    let fstDict =ScrabbleUtil.Dictionary.step (idToChar id) (snd klamTuple)
                     match fstDict with 
                     | Some (_,dict') -> 
                         let rec aux lst dict coord : uint32 list=
@@ -201,7 +228,14 @@ module Scrabble =
                                         | Some(x) ->
                                             if(isValidCharPlacement (coordGenerator coord (flipDir dir)) (snd nextTileChar) dir) then
                                                 match x with
-                                                | (true,_) -> 100u :: acc
+                                                | (true, dict'') ->
+                                                    if isWordInPlay startCoord coord then   
+                                                        let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
+                                                        match help with 
+                                                        | [] -> acc
+                                                        | _ -> acc @ 100u :: help //Set the "id" to 100u, such that the moveGenerator can avoid using it, since it is already on the board
+                                                    else
+                                                        100u :: acc
                                                 | (false, dict'') -> 
                                                     let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
                                                     match help with 
@@ -234,32 +268,6 @@ module Scrabble =
                         else
                             id :: word
                     | _ -> []
-
-                // let findWordFromyuChar dict id hand =
-                //     let fstDict = Dictionary.step (idToChar id) dict
-                //     match fstDict with 
-                //     | Some (_,dict') -> 
-                //         let rec aux lst dict : uint32 list=
-                //             List.fold (fun (acc) (id1) ->
-                //                 if acc.IsEmpty then
-                //                     let temp = ScrabbleUtil.Dictionary.step (idToChar id1) dict
-                //                     match temp with
-                //                     | Some (true,_) -> id1 :: acc
-                //                     | Some (false, dict'') -> 
-                //                         let help = aux (rmElementFromList lst id1) dict'' //Checks if the recursive rabbithole yielded any word
-                //                         match help with 
-                //                         | [] -> acc
-                //                         | _ -> acc @ id1 :: help
-                //                     | _ -> []
-                //                 else
-                //                     acc
-                //             ) [] lst
-                //         let word = aux hand dict'
-                //         if word.IsEmpty then
-                //             []
-                //         else
-                //             id :: word
-                //     | _ -> []
 
 
                 let rec MoveGenerator (word:(uint32 list*(int*int))) (dir: string): list<(int * int) * (uint32 * (char * int))> =
