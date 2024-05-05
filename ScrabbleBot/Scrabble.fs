@@ -292,7 +292,7 @@ module Scrabble =
                         | [] -> []
 
 
-                let MakeWord (lst : uint32 list) dict: ((uint32 list*(int*int)) * string)=             
+                let MakeWord (lst : uint32 list) dict: ((uint32 list*(int*int)) * string) =             
                     if st.playedWords.IsEmpty then
                         let rec aux1 lst dict : uint32 list=
                             List.fold (fun (acc) (id) ->
@@ -311,30 +311,33 @@ module Scrabble =
                             ) [] lst
                         (aux1 lst dict,(0,0)),"right"
                     else 
-                        let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))> * string>) (hand: uint32 list) dict : ((uint32 list*(int*int)) * string)=
-                            List.fold (fun (acc:((uint32 list*(int*int)) * string)) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
-                                    if (fst(fst acc)).IsEmpty then
-                                        //folds over the letters of the a played word, to give a start letter to our new word
-                                        let returnedWord = (List.fold (fun (acc1:((uint32 list * (int*int))*string)) letter ->
-                                            if (fst (fst acc1)).IsEmpty then
-                                                let wordFromChar = findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter)
-                                                if wordFromChar.IsEmpty then
-                                                    debugPrint "Empty sgowegoweigjsoegij"
-                                                    (((fst (fst acc1)) @ findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)),(flipDir (snd w))) //returns the builded word with its start coord
-                                                else 
-                                                    debugPrint ("Not empty -------- " + string wordFromChar)
-                                                    (((fst (fst acc1)) @ wordFromChar,(fst letter)), (snd w)) //returns the builded word with its start coord
-                                            else
-                                                acc1
-                                        ) (([],(0,0)), "") (fst w))
-                                        (((fst(fst acc))@ fst (fst returnedWord), snd (fst returnedWord)),snd returnedWord) //return builded word with direction
+                        let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))> * string>) (hand: uint32 list) dict : list<((uint32 list*(int*int)) * string)>=
+                            List.fold (fun (acc:list<((uint32 list*(int*int)) * string)>) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
+                                //folds over the letters of the a played word, to give a start letter to our new word
+                                let returnedWord = (List.fold (fun (acc1:((uint32 list * (int*int))*string)) letter ->
+                                    if (fst (fst acc1)).IsEmpty then
+                                        let wordFromChar = findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter)
+                                        if wordFromChar.IsEmpty then
+                                            debugPrint "Empty sgowegoweigjsoegij"
+                                            (((fst (fst acc1)) @ findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)),(flipDir (snd w))) //returns the builded word with its start coord
+                                        else 
+                                            debugPrint ("Not empty -------- " + string wordFromChar)
+                                            (((fst (fst acc1)) @ wordFromChar,(fst letter)), (snd w)) //returns the builded word with its start coord
                                     else
-                                        acc
-                            ) (([],(0,0)),"") pw
-                        debugPrint ("list --------" + string (aux2 (st.playedWords) lst dict))
-                        aux2 (st.playedWords) lst dict
-
-                
+                                        acc1
+                                ) (([],(0,0)), "") (fst w))
+                                acc @ [((fst (fst returnedWord), snd (fst returnedWord)),snd returnedWord)] //return builded word with direction
+                                
+                            ) [(([],(0,0)),"")] pw 
+                        let listOfPossibleWords =  aux2 (st.playedWords) lst dict
+                        let longestWord = 
+                            List.fold(fun (acc:((uint32 list*(int*int)) * string)) (word: ((uint32 list*(int*int)) * string)) ->
+                            match word with
+                            | x when (fst (fst x)).Length > (fst (fst acc)).Length -> 
+                                word
+                            |_ -> acc               
+                            ) (([],(0,0)),"") listOfPossibleWords
+                        longestWord
                 
                         
 
