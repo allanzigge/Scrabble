@@ -76,8 +76,6 @@ module Scrabble =
                 debugPrint("-.-.-.-.-.-. My turn, i am player number" + string (State.playerNumber st) + " .-.-.-.-.-.-\n")
                 Print.printHand (pieces: Map<uint32,tile>) (State.hand st)
 
-                debugPrint("-.-.-.-.-.-. Player number"+ string (State.playerNumber st) + "has coodmap:" + string (st.coordMap) + " .-.-.-.-.-.-\n")
-
                 // remove the force print when you move on from manual input (or when you have learnt the format)
                 // forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
                 // let input =  System.Console.ReadLine()
@@ -161,8 +159,6 @@ module Scrabble =
                     //The mkListOfIds keeps going in the opposite direction and adds any id's it meets
                     // to a list (creating the word the starting char possibly is a part of)
                     let rec mkListOfIds(dir1:string) (coord2:(int*int))=
-                        debugPrint ("coordooordcorood " + string (coord2))
-                        debugPrint (dir1)
                         let nextTileChar = isNextTileOccupied dir1 coord2
                         match nextTileChar with
                         | (true,char) -> 
@@ -170,7 +166,6 @@ module Scrabble =
                             (fst tempReturn), ((snd tempReturn) @ [char])
                         | (false,_) -> (coord2, [])
                     let listOfIds = (mkListOfIds opDir coord)
-                    debugPrint ("ididididididididid" + string (listOfIds))
                     //Folding over the list of id's and stepping through their dictionaries should
                     //give the start dict, now influences by possible other chars which it's already 
                     //are making a word with
@@ -229,7 +224,7 @@ module Scrabble =
                                             if(isValidCharPlacement (coordGenerator coord (flipDir dir)) (snd nextTileChar) dir) then
                                                 match x with
                                                 | (true, dict'') ->
-                                                    if isWordInPlay startCoord coord then   
+                                                    if isWordInPlay startCoord (coordGenerator coord (flipDir dir)) then   
                                                         let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
                                                         match help with 
                                                         | [] -> acc
@@ -292,8 +287,8 @@ module Scrabble =
                         | [] -> []
 
 
-                let MakeWord (lst : uint32 list) dict: ((uint32 list*(int*int)) * string) =             
-                    if st.playedWords.IsEmpty then
+                let MakeWord (lst1 : uint32 list) dict: ((uint32 list*(int*int)) * string) =             
+                    if st.playedWords.IsEmpty then   
                         let rec aux1 lst dict : uint32 list=
                             List.fold (fun (acc) (id) ->
                                 if acc.IsEmpty then
@@ -308,28 +303,21 @@ module Scrabble =
                                     | _ -> []
                                 else
                                     acc
-                            ) [] lst
-                        (aux1 lst dict,(0,0)),"right"
+                            ) [] lst1
+                        (aux1 lst1 dict,(0,0)),"right"
                     else 
                         let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))> * string>) (hand: uint32 list) dict : list<((uint32 list*(int*int)) * string)>=
                             List.fold (fun (acc:list<((uint32 list*(int*int)) * string)>) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
                                 //folds over the letters of the a played word, to give a start letter to our new word
-                                let returnedWord = (List.fold (fun (acc1:((uint32 list * (int*int))*string)) letter ->
-                                    if (fst (fst acc1)).IsEmpty then
-                                        let wordFromChar = findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter)
-                                        if wordFromChar.IsEmpty then
-                                            debugPrint "Empty sgowegoweigjsoegij"
-                                            (((fst (fst acc1)) @ findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)),(flipDir (snd w))) //returns the builded word with its start coord
-                                        else 
-                                            debugPrint ("Not empty -------- " + string wordFromChar)
-                                            (((fst (fst acc1)) @ wordFromChar,(fst letter)), (snd w)) //returns the builded word with its start coord
-                                    else
-                                        acc1
-                                ) (([],(0,0)), "") (fst w))
-                                acc @ [((fst (fst returnedWord), snd (fst returnedWord)),snd returnedWord)] //return builded word with direction
+                                let returnedWord = 
+                                    List.fold (fun (acc1:List<((uint32 list * (int*int))*string)>) letter ->
+                                        acc1 @ [(findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (snd w)] @ [(findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)),(flipDir (snd w))]
+                                        //returns the builded word with its start coord
+                                    ) [(([],(0,0)), "")] (fst w)
+                                acc @ returnedWord //return builded word with direction
                                 
                             ) [(([],(0,0)),"")] pw 
-                        let listOfPossibleWords =  aux2 (st.playedWords) lst dict
+                        let listOfPossibleWords =  aux2 (st.playedWords) lst1 dict
                         let longestWord = 
                             List.fold(fun (acc:((uint32 list*(int*int)) * string)) (word: ((uint32 list*(int*int)) * string)) ->
                             match word with
@@ -348,7 +336,7 @@ module Scrabble =
                     send cstream SMPass
                 else
                     debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-                    debugPrint (sprintf "Player %d -> MADE THIS WORDMOVE:\n%A\n" (State.playerNumber st) move) 
+                    debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
                     send cstream (SMPlay move)
 
             
@@ -377,7 +365,6 @@ module Scrabble =
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                debugPrint(sprintf "-.-.-.-.-.-.-.- ms: " + string (ms) + "-.-.-.-.-.-.-.-")
                 let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords @ [directionParser ms]) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms)
                 // This state needs to be updated
                 aux st'

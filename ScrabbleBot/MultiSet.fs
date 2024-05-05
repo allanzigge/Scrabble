@@ -38,12 +38,16 @@ module internal MultiSet
         Map.foldBack (f) s x
     
     let ofList (_ : 'a list) : MultiSet<'a> = failwith "not implemented"
-    let rec toList (m : MultiSet<'a>) : 'a list = 
+    let toList (m : MultiSet<'a>) : 'a list = 
         fold (fun acc (char : 'a) value -> 
-        if value > 1u then 
-            let tmp = m
-            removeSingle char tmp |> toList |> (fun lst -> lst @ (char :: acc))
-        else char :: acc) [] m
+            if value > 1u then 
+                let rec crude char value : List<'a> =
+                    match value with
+                    | 0u -> []
+                    | x -> char :: crude char (x - 1u)
+                acc @ crude char value
+
+            else char :: acc) [] m
 
 
     let map (_ : 'a -> 'b) (_ : MultiSet<'a>) : MultiSet<'b> = failwith "not implemented"
