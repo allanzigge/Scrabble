@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj": {}
+    "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj": {}
   },
   "projects": {
-    "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/ScrabbleBot.fsproj": {
+    "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
+        "projectUniqueName": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
         "projectName": "ScrabbleBot",
-        "projectPath": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
-        "packagesPath": "/Users/lukaspallesen/.nuget/packages/",
-        "outputPath": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/",
+        "projectPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
+        "packagesPath": "/Users/markushojgaard/.nuget/packages/",
+        "outputPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/lukaspallesen/.nuget/NuGet/NuGet.Config"
+          "/Users/markushojgaard/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net7.0"
@@ -76,17 +76,17 @@
         }
       }
     },
-    "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj": {
+    "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj",
+        "projectUniqueName": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj",
         "projectName": "ScrabbleTemplate",
-        "projectPath": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj",
-        "packagesPath": "/Users/lukaspallesen/.nuget/packages/",
-        "outputPath": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleTemplate/obj/",
+        "projectPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleTemplate/ScrabbleTemplate.fsproj",
+        "packagesPath": "/Users/markushojgaard/.nuget/packages/",
+        "outputPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleTemplate/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/lukaspallesen/.nuget/NuGet/NuGet.Config"
+          "/Users/markushojgaard/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net7.0"
@@ -99,8 +99,8 @@
           "net7.0": {
             "targetAlias": "net7.0",
             "projectReferences": {
-              "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/ScrabbleBot.fsproj": {
-                "projectPath": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/ScrabbleBot.fsproj"
+              "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj": {
+                "projectPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj"
               }
             }
           }
@@ -144,7 +144,7 @@
               "version": "[7.0.14, 7.0.14]"
             },
             {
-              "name": "Microsoft.NETCore.App.Host.osx-arm64",
+              "name": "Microsoft.NETCore.App.Host.osx-x64",
               "version": "[7.0.14, 7.0.14]"
             },
             {

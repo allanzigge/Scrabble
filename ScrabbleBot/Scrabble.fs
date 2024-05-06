@@ -311,8 +311,18 @@ module Scrabble =
                     else 
                         List.iter(fun w->
                             List.iter(fun letter ->
-                                let foundWordDir =      (findWordFromChar dict (fst (snd letter)) lst1 (snd w) (fst letter),(fst letter)), (flipDir (snd w))
-                                let foundWordOppDir =   (findWordFromChar dict (fst (snd letter)) lst1 (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
+                                let foundWordDir = 
+                                    try
+                                        (findWordFromChar dict (fst (snd letter)) lst1 (snd w) (fst letter),(fst letter)), (flipDir (snd w))
+                                    with
+                                    | :? System.OperationCanceledException as ex -> 
+                                        raise ex 
+                                let foundWordOppDir =   
+                                    try
+                                        (findWordFromChar dict (fst (snd letter)) lst1 (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
+                                    with
+                                    | :? System.OperationCanceledException as ex -> 
+                                        raise ex 
                                 if (fst (fst foundWordDir)).Length > (fst (fst longestWordSoFar)).Length then
                                     longestWordSoFar <- foundWordDir
                                 elif (fst (fst foundWordOppDir)).Length > (fst (fst longestWordSoFar)).Length then
@@ -326,24 +336,33 @@ module Scrabble =
                 
                 // Your doThing function made asynchronous
                 let doThing  =
-                    let move = MakeMove (MakeWord lstOfTiles (State.dict st))
+                    let move =
+                        try 
+                            MakeMove (MakeWord lstOfTiles (State.dict st))
+                        with 
+                        | :? System.OperationCanceledException as ex -> 
+                            raise ex 
                     if move.IsEmpty then 
                         send cstream SMPass
                     else
                         debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
                         debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
                         send cstream (SMPlay move)
+                        
+                    
+                    
+                    
+
                     
 
                 match st.timeout with
                     | Some(x) -> 
-                        use cts = new System.Threading.CancellationTokenSource(int x - 99900)
+                        use cts = new System.Threading.CancellationTokenSource(int x - 99990)
                         let po = new ParallelOptions() 
                         po.CancellationToken <- cts.Token 
                         po.MaxDegreeOfParallelism <- System.Environment.ProcessorCount
                         try
-                            Parallel.ForEach([||], po, fun _ -> doThing
-                            ) |> ignore
+                            Parallel.ForEach([||], po, fun _ -> doThing) |> ignore
                         with
                         | :? System.OperationCanceledException -> 
                             debugPrint "---------EXCEPTION---------"

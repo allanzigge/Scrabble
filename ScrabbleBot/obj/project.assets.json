@@ -154,19 +154,19 @@
     ]
   },
   "packageFolders": {
-    "/Users/lukaspallesen/.nuget/packages/": {}
+    "/Users/markushojgaard/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
+      "projectUniqueName": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
       "projectName": "ScrabbleBot",
-      "projectPath": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
-      "packagesPath": "/Users/lukaspallesen/.nuget/packages/",
-      "outputPath": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/obj/",
+      "projectPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
+      "packagesPath": "/Users/markushojgaard/.nuget/packages/",
+      "outputPath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/lukaspallesen/.nuget/NuGet/NuGet.Config"
+        "/Users/markushojgaard/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net7.0"

@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "A87yBBr+GeQVSW7bwDlOWQ1ZyVlhEhO62TGEDJbdxps3iUoXAdG7dqT0ZeqRBS5pbGXNp2o0OrFaQpQUyGWr3g==",
+  "dgSpecHash": "eLRVWc5EN0fuaLH43N6EUVujH4ZJjyOchv5Mih6/11pOR3Yr6+GcJ8qst3CqAsq7nTsal2MDsz+J4LhHndSI9A==",
   "success": true,
-  "projectFilePath": "/Users/lukaspallesen/SWU/4semester/FUN/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
+  "projectFilePath": "/Users/markushojgaard/Documents/ITU/4._semester/Functinal_Programing/Scrabble/ScrabbleBot/ScrabbleBot.fsproj",
   "expectedPackageFiles": [
-    "/Users/lukaspallesen/.nuget/packages/fparsec/1.1.1/fparsec.1.1.1.nupkg.sha512",
-    "/Users/lukaspallesen/.nuget/packages/fsharp.core/7.0.200/fsharp.core.7.0.200.nupkg.sha512",
-    "/Users/lukaspallesen/.nuget/packages/microsoft.netcore.app.ref/7.0.14/microsoft.netcore.app.ref.7.0.14.nupkg.sha512",
-    "/Users/lukaspallesen/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.14/microsoft.aspnetcore.app.ref.7.0.14.nupkg.sha512"
+    "/Users/markushojgaard/.nuget/packages/fparsec/1.1.1/fparsec.1.1.1.nupkg.sha512",
+    "/Users/markushojgaard/.nuget/packages/fsharp.core/7.0.200/fsharp.core.7.0.200.nupkg.sha512",
+    "/Users/markushojgaard/.nuget/packages/microsoft.netcore.app.ref/7.0.14/microsoft.netcore.app.ref.7.0.14.nupkg.sha512",
+    "/Users/markushojgaard/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.14/microsoft.aspnetcore.app.ref.7.0.14.nupkg.sha512"
   ],
   "logs": []
 }
