@@ -111,14 +111,15 @@ module Scrabble =
 
             match st.timeout with
             | Some(x) -> 
-                ct <- new System.Threading.CancellationTokenSource(int (x-800u))
+                ct <- new System.Threading.CancellationTokenSource(int (x-150u))
+            | _ -> ct <- ct
             
             Async.Start(
                 async {
                     let! ct = Async.CancellationToken
                     use! c = Async.OnCancel(
                         fun () -> 
-                            debugPrint "Timeout occurred eriuhgieurhgpiu"
+                            debugPrint "Timeout occurred"
                             let move = MakeMove (longestWordSoFar)
                             if move.IsEmpty then 
                                 send cstream SMPass
@@ -248,14 +249,12 @@ module Scrabble =
                                                                 if(isValidCharPlacement (coordGenerator coord (flipDir dir)) (snd nextTileChar) dir) then
                                                                     match x with
                                                                     | (true, dict'') ->
-                                                                        if isWordInPlay startCoord (coordGenerator coord (flipDir dir)) then
-                                                                            // debugPrint("in trueee")   
+                                                                        if isWordInPlay startCoord (coordGenerator coord (flipDir dir)) then 
                                                                             let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
                                                                             match help with 
                                                                             | [] -> acc
                                                                             | _ -> acc @ 100u :: help //Set the "id" to 100u, such that the moveGenerator can avoid using it, since it is already on the board
                                                                         else
-                                                                            // debugPrint("in faaaaalse")
                                                                             100u :: acc
                                                                     | (false, dict'') -> 
                                                                         let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
@@ -295,8 +294,7 @@ module Scrabble =
                                         | _ -> []
                                         
 
-                                    let MakeWord (lst1 : uint32 list) dict: ((uint32 list*(int*int)) * string) = 
-                                        let stopWatch = System.Diagnostics.Stopwatch.StartNew()           
+                                    let MakeWord (lst1 : uint32 list) dict: ((uint32 list*(int*int)) * string) =            
                                         if st.playedWords.IsEmpty then   
                                             List.iter(fun id->
                                                 let foundWord = (findWordFromChar dict id (rmElementFromList lst1 id) "right" (0,0), (0,0)), "down" 
@@ -314,8 +312,6 @@ module Scrabble =
                                                             longestWordSoFar <- foundWordOppDir
                                                     ) (fst w)
                                                 ) st.playedWords
-                                        stopWatch.Stop()
-                                        printfn "StopWatch %f" stopWatch.Elapsed.TotalMilliseconds
                                         longestWordSoFar
                                     
                                     let move = MakeMove (MakeWord lstOfTiles (State.dict st))
@@ -366,11 +362,8 @@ module Scrabble =
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 debugPrint("Player: " + string st.playerNumber + " in CMPLAYSUCCESS")
-                // printfn("Hand before: %A") st.hand
-                // printfn("Hand after: %A") (updateHand ms newPieces)
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
                 let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords @ [directionParser ms]) (NextPlayerFinder (State.playerNumber st)) (State.numPlayers st) (updateCoordMap ms) (State.timeout st) (st.forfeitPlayers)
-                // printfn("efter save %A ") (st'.hand)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
