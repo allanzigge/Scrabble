@@ -51,9 +51,10 @@ module State =
         numPlayers : uint32
         coordMap: Map<(int*int),uint32>
         timeout: uint32 option
+        mutable forfeitPlayers: list<uint32>
     }
 
-    let mkState b d pn h pw pt np cm t = {board = b; dict = d;  playerNumber = pn; hand = h; playedWords = pw; playerTurn = pt ; numPlayers = np; coordMap = cm; timeout = t}
+    let mkState b d pn h pw pt np cm t fp= {board = b; dict = d;  playerNumber = pn; hand = h; playedWords = pw; playerTurn = pt ; numPlayers = np; coordMap = cm; timeout = t; forfeitPlayers =fp}
 
     let board st         = st.board
     let dict st          = st.dict
@@ -62,6 +63,8 @@ module State =
 
     let numPlayers st = st.numPlayers
     let playedWords = []
+
+    let forfeitPlayers = []
 
     let coordMap = Map.empty
     let playerTurn st            = st.playerTurn
@@ -74,7 +77,6 @@ module Scrabble =
     let playGame cstream (pieces: Map<uint32, tile>) (st : State.state) =
 
         let rec aux (st : State.state) =
-            let stopWatch = System.Diagnostics.Stopwatch.StartNew()
             let mutable ct = new System.Threading.CancellationTokenSource()
             let mutable longestWordSoFar = (([],(0,0)), "")
 
@@ -109,16 +111,15 @@ module Scrabble =
 
             match st.timeout with
             | Some(x) -> 
-                ct <- new System.Threading.CancellationTokenSource(int (x-100u))
+                ct <- new System.Threading.CancellationTokenSource(int (x-150u))
+            | _ -> ct <- ct
             
             Async.Start(
                 async {
-                    stopWatch.Stop()
-                    // debugPrint (printfn ("osigjwosiejge oij %f" stopWatch.Elapsed.TotalMilliseconds))
                     let! ct = Async.CancellationToken
                     use! c = Async.OnCancel(
                         fun () -> 
-                            debugPrint "Timeout occurred eriuhgieurhgpiu"
+                            debugPrint "Timeout occurred"
                             let move = MakeMove (longestWordSoFar)
                             if move.IsEmpty then 
                                 send cstream SMPass
@@ -130,276 +131,215 @@ module Scrabble =
                 
                         async {
                             if (State.playerTurn st) = (State.playerNumber st) then
-                                
-                                
-                                debugPrint("-.-.-.-.-.-. My turn, i am player number" + string (State.playerNumber st) + " .-.-.-.-.-.-\n")
-                                // printfn("Hand: %A") st.hand
-                                Print.printHand (pieces: Map<uint32,tile>) (State.hand st)
+                                // If you would like to test our forfeit functionality, uncomment the next 5 lines. 
+                                // let r = System.Random()
+                                // let dumNums = r.Next(1, 25)
+                                // if dumNums = 1 then
+                                //     send cstream (SMForfeit)
+                                // else
+                                    
+                                    
+                                    debugPrint("-.-.-.-.-.-. My turn, i am player number" + string (State.playerNumber st) + " .-.-.-.-.-.-\n")
+                                    Print.printHand (pieces: Map<uint32,tile>) (State.hand st)
 
-                                // remove the force print when you move on from manual input (or when you have learnt the format)
-                                // forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
-                                // let input =  System.Console.ReadLine()
-                                let lstOfTiles = MultiSet.toList (State.hand st)
-                                // let lstOfChars : char list = 
-                                //     List.map (fun tile -> 
-                                //     let set = (Map.find tile pieces)
-                                //     match set with 
-                                //     | [(char, _)] -> char
-                                //     | _ -> ' '
-                                //     ) lstOfTiles
-                            
+                                    let lstOfTiles = MultiSet.toList (State.hand st)                                
 
-                                let idToChar id = 
-                                    match Map.find id pieces with 
-                                    | tile -> fst tile.MinimumElement
+                                    let idToChar id = 
+                                        match Map.find id pieces with 
+                                        | tile -> fst tile.MinimumElement
 
-                                
-
-                                let flipDir dir = 
-                                    match dir with
-                                    | "right" -> "down"
-                                    | "down" -> "right"
-                                
-                                let oppositeDir dir = 
+                                    let flipDir dir = 
                                         match dir with
-                                        | "right" -> "left"
-                                        | "down" -> "up"
+                                        | "right" -> "down"
+                                        | "down" -> "right"
+                                    
+                                    let oppositeDir dir = 
+                                            match dir with
+                                            | "right" -> "left"
+                                            | "down" -> "up"
+                                            
+                                    let rec rmElementFromList lst id  =
+                                        match lst with
+                                        | x :: lst' when x = id -> lst'
+                                        | x :: lst' -> x :: rmElementFromList lst' id
+                                        | _ -> lst
+
+                                    let isValidCharPlacement (coord:(int * int)) (char:uint32) (dir:string)=
+
+                                        let rec list1 nextCoord  = 
+                                            let nextChar = Map.tryFind (coordGenerator nextCoord dir) st.coordMap
+                                            match nextChar with
+                                            | None -> [] //empty
+                                            | Some (x) -> [x] @ list1 (coordGenerator nextCoord dir)
+                                        
+                                        let rec list2 nextCoord = 
+                                            let nextChar = Map.tryFind (coordGenerator nextCoord (oppositeDir dir)) st.coordMap
+                                            match nextChar with
+                                            | None -> [] //empty
+                                            | Some (x) -> list2 (coordGenerator nextCoord (oppositeDir dir)) @ [x]
+                                        
+                                        let finalList  =
+                                            (list2 coord)@[char]@(list1 coord)
+                                        
+                                        if (finalList.Length = 1) then
+                                            true
+                                        else 
+                                            let word = (List.map idToChar finalList).ToString()
+                                            ScrabbleUtil.Dictionary.lookup word st.dict
                                         
 
-                                
-                                
-                                let rec rmElementFromList lst id  =
-                                    match lst with
-                                    | x :: lst' when x = id -> lst'
-                                    | x :: lst' -> x :: rmElementFromList lst' id
-                                    | _ -> lst
-
-
-                                let isValidCharPlacement (coord:(int * int)) (char:uint32) (dir:string)=
-
-                                    let rec list1 nextCoord  = 
-                                        let nextChar = Map.tryFind (coordGenerator nextCoord dir) st.coordMap
-                                        match nextChar with
-                                        | None -> [] //empty
-                                        | Some (x) -> [x] @ list1 (coordGenerator nextCoord dir)
+                                    let isNextTileOccupied (dir:string) (coord:(int*int)) =
+                                        
+                                        let nextTile = coordGenerator coord dir
+                                        if(st.coordMap.ContainsKey nextTile) then
+                                            (true,st.coordMap[nextTile])
+                                        else
+                                            (false, 100u)
                                     
-                                    let rec list2 nextCoord = 
-                                        let nextChar = Map.tryFind (coordGenerator nextCoord (oppositeDir dir)) st.coordMap
-                                        match nextChar with
-                                        | None -> [] //empty
-                                        | Some (x) -> list2 (coordGenerator nextCoord (oppositeDir dir)) @ [x]
-                                    
-                                    let finalList  =
-                                        (list2 coord)@[char]@(list1 coord)
-                                    
-                                    if (finalList.Length = 1) then
-                                        true
-                                    else 
-                                        let word = (List.map idToChar finalList).ToString()
-                                        ScrabbleUtil.Dictionary.lookup word st.dict
-                                    
-
-                                let isNextTileOccupied (dir:string) (coord:(int*int)) =
-                                    
-                                    let nextTile = coordGenerator coord dir
-                                    if(st.coordMap.ContainsKey nextTile) then
-                                        (true,st.coordMap[nextTile])
-                                    else
-                                        (false, 100u)
-                                
-                                let lookInOppositeDirection (dir:string)  (coord:(int*int)) dict =
-                                    let opDir = oppositeDir (flipDir dir)
-                                    //The mkListOfIds keeps going in the opposite direction and adds any id's it meets
-                                    // to a list (creating the word the starting char possibly is a part of)
-                                    let rec mkListOfIds(dir1:string) (coord2:(int*int))=
-                                        let nextTileChar = isNextTileOccupied dir1 coord2
-                                        match nextTileChar with
-                                        | (true,char) -> 
-                                            let tempReturn =  (mkListOfIds dir1 (coordGenerator coord2 dir1))
-                                            (fst tempReturn), ((snd tempReturn) @ [char])
-                                        | (false,_) -> (coord2, [])
-                                    let listOfIds = (mkListOfIds opDir coord)
-                                    //Folding over the list of id's and stepping through their dictionaries should
-                                    //give the start dict, now influences by possible other chars which it's already 
-                                    //are making a word with
-                                    let returnDictionary = 
-                                        List.fold (fun acc id ->
-                                            let acc =
-                                                match (ScrabbleUtil.Dictionary.step (idToChar id) acc) with
-                                                | Some(true, dict) -> dict
-                                                | Some(false, dict) -> dict
-                                                | _ -> acc
-                                            acc
-                                        ) dict (snd listOfIds)
-                                    (fst listOfIds), returnDictionary
+                                    let lookInOppositeDirection (dir:string)  (coord:(int*int)) dict =
+                                        let opDir = oppositeDir (flipDir dir)
+                                        //The mkListOfIds keeps going in the opposite direction and adds any id's it meets
+                                        // to a list (creating the word the starting char possibly is a part of)
+                                        let rec mkListOfIds(dir1:string) (coord2:(int*int))=
+                                            let nextTileChar = isNextTileOccupied dir1 coord2
+                                            match nextTileChar with
+                                            | (true,char) -> 
+                                                let tempReturn =  (mkListOfIds dir1 (coordGenerator coord2 dir1))
+                                                (fst tempReturn), ((snd tempReturn) @ [char])
+                                            | (false,_) -> (coord2, [])
+                                        let listOfIds = (mkListOfIds opDir coord)
+                                        //Folding over the list of id's and stepping through their dictionaries should
+                                        //give the start dict, now influences by possible other chars which it's already 
+                                        //are making a word with
+                                        let returnDictionary = 
+                                            List.fold (fun acc id ->
+                                                let acc =
+                                                    match (ScrabbleUtil.Dictionary.step (idToChar id) acc) with
+                                                    | Some(true, dict) -> dict
+                                                    | Some(false, dict) -> dict
+                                                    | _ -> acc
+                                                acc
+                                            ) dict (snd listOfIds)
+                                        (fst listOfIds), returnDictionary
 
 
 
-                                    
-                                let isWordInPlay startCoord thisCoord :bool =
-                                    //løb playedWord igennem
-                                    //fold - kig i hvert ord check om startCoord = første coord i ordet 
-                                    // andet fold, check om vi rammer thisCoord
-                                    // debugPrint("startCoord: " + string startCoord + "thisCoord: " + string thisCoord)
-                                    // List.fold(fun (acc: bool) (word:list<(int * int) * (uint32 * (char * int))> * string) -> 
-                                    //     if acc then 
-                                    //         acc
-                                    //     else
-                                    //         match startCoord with 
-                                    //         | x when x = (fst ((fst word)[0])) -> 
-                                    //             List.fold(fun acc letter ->
-                                    //                 if acc then 
-                                    //                     acc
-                                    //                 else 
-                                    //                     match fst letter with 
-                                    //                     |c when c = thisCoord -> true
-                                    //                     | _ -> acc
-                                    //             ) false (fst word) 
-                                    //         |_ -> acc
-                                    // )  false st.playedWords  
-                                    if st.coordMap.ContainsKey(startCoord) && st.coordMap.ContainsKey(thisCoord) then
-                                        true
-                                    else
-                                        false
+                                        
+                                    let isWordInPlay startCoord thisCoord :bool =
+                                        if st.coordMap.ContainsKey(startCoord) && st.coordMap.ContainsKey(thisCoord) then
+                                            true
+                                        else
+                                            false
 
-
-
-                                let findWordFromChar dict id hand dir coord=
-                                    let klamTuple = (lookInOppositeDirection dir coord dict)
-                                    let startCoord = fst klamTuple
-                                    let fstDict =ScrabbleUtil.Dictionary.step (idToChar id) (snd klamTuple)
-                                    match fstDict with 
-                                    | Some (_,dict') -> 
-                                        let rec aux lst dict coord : uint32 list=
-                                            List.fold (fun (acc) (id1) ->
-                                                if acc.IsEmpty then
-                                                    let nextTileChar = isNextTileOccupied (flipDir dir) coord
-                                                    
-                                                    if(fst nextTileChar) then
-                                                        let nextDict = ScrabbleUtil.Dictionary.step (idToChar (snd nextTileChar)) dict
-                                                        match nextDict with
-                                                        | Some(x) ->
-                                                            if(isValidCharPlacement (coordGenerator coord (flipDir dir)) (snd nextTileChar) dir) then
-                                                                match x with
-                                                                | (true, dict'') ->
-                                                                    if isWordInPlay startCoord (coordGenerator coord (flipDir dir)) then
-                                                                        // debugPrint("in trueee")   
+                                    let findWordFromChar dict id hand dir coord=
+                                        let klamTuple = (lookInOppositeDirection dir coord dict)
+                                        let startCoord = fst klamTuple
+                                        let fstDict =ScrabbleUtil.Dictionary.step (idToChar id) (snd klamTuple)
+                                        match fstDict with 
+                                        | Some (_,dict') -> 
+                                            let rec aux lst dict coord : uint32 list=
+                                                List.fold (fun (acc) (id1) ->
+                                                    if acc.IsEmpty then
+                                                        let nextTileChar = isNextTileOccupied (flipDir dir) coord
+                                                        
+                                                        if(fst nextTileChar) then
+                                                            let nextDict = ScrabbleUtil.Dictionary.step (idToChar (snd nextTileChar)) dict
+                                                            match nextDict with
+                                                            | Some(x) ->
+                                                                if(isValidCharPlacement (coordGenerator coord (flipDir dir)) (snd nextTileChar) dir) then
+                                                                    match x with
+                                                                    | (true, dict'') ->
+                                                                        if isWordInPlay startCoord (coordGenerator coord (flipDir dir)) then 
+                                                                            let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
+                                                                            match help with 
+                                                                            | [] -> acc
+                                                                            | _ -> acc @ 100u :: help //Set the "id" to 100u, such that the moveGenerator can avoid using it, since it is already on the board
+                                                                        else
+                                                                            100u :: acc
+                                                                    | (false, dict'') -> 
                                                                         let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
                                                                         match help with 
                                                                         | [] -> acc
                                                                         | _ -> acc @ 100u :: help //Set the "id" to 100u, such that the moveGenerator can avoid using it, since it is already on the board
-                                                                    else
-                                                                        // debugPrint("in faaaaalse")
-                                                                        100u :: acc
-                                                                | (false, dict'') -> 
-                                                                    let help = aux (lst) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
-                                                                    match help with 
-                                                                    | [] -> acc
-                                                                    | _ -> acc @ 100u :: help //Set the "id" to 100u, such that the moveGenerator can avoid using it, since it is already on the board
-                                                            else
-                                                                acc
-                                                        | _ -> []
+                                                                else
+                                                                    acc
+                                                            | _ -> []
+                                                        else
+                                                            let nextDict = ScrabbleUtil.Dictionary.step (idToChar id1) dict
+                                                            match nextDict with
+                                                            | Some(x) ->
+                                                                if(isValidCharPlacement (coordGenerator coord (flipDir dir)) id1 dir) then
+                                                                    match x with
+                                                                    | (true,_) -> 
+                                                                        if (fst (isNextTileOccupied (flipDir dir) (coordGenerator coord (flipDir dir)))) then
+                                                                            acc
+                                                                        else
+                                                                            id1 :: acc
+                                                                    | (false, dict'') -> 
+                                                                        let help = aux (rmElementFromList lst id1) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
+                                                                        match help with 
+                                                                        | [] -> acc
+                                                                        | _ -> acc @ id1 :: help
+                                                                else
+                                                                    acc
+                                                            | _ -> [] 
                                                     else
-                                                        let nextDict = ScrabbleUtil.Dictionary.step (idToChar id1) dict
-                                                        match nextDict with
-                                                        | Some(x) ->
-                                                            if(isValidCharPlacement (coordGenerator coord (flipDir dir)) id1 dir) then
-                                                                match x with
-                                                                | (true,_) -> 
-                                                                    if (fst (isNextTileOccupied (flipDir dir) (coordGenerator coord (flipDir dir)))) then
-                                                                        acc
-                                                                    else
-                                                                        id1 :: acc
-                                                                | (false, dict'') -> 
-                                                                    let help = aux (rmElementFromList lst id1) dict'' (coordGenerator coord (flipDir dir))//Checks if the recursive rabbithole yielded any word
-                                                                    match help with 
-                                                                    | [] -> acc
-                                                                    | _ -> acc @ id1 :: help
-                                                            else
-                                                                acc
-                                                        | _ -> []
-                                                else
-                                                    acc
-                                            ) [] lst
-                                        let word = aux hand dict' coord
-                                        if word.IsEmpty then
-                                            []
-                                        else
-                                            id :: word
-                                    | _ -> []
-
-
-                                
-
-
-                                let MakeWord (lst1 : uint32 list) dict: ((uint32 list*(int*int)) * string) =             
-                                    if st.playedWords.IsEmpty then   
-                                        List.iter(fun id->
-                                            let foundWord = (findWordFromChar dict id (rmElementFromList lst1 id) "right" (0,0), (0,0)), "down" 
-                                            if (fst (fst foundWord)).Length > (fst (fst longestWordSoFar)).Length then
-                                                longestWordSoFar <- foundWord
-                                        ) lst1
-                                    else 
-                                            List.iter(fun w->
-                                                List.iter(fun letter ->
-                                                    let foundWordDir =      (findWordFromChar dict (fst (snd letter)) lst1 (snd w) (fst letter),(fst letter)), (flipDir (snd w))
-                                                    let foundWordOppDir =   (findWordFromChar dict (fst (snd letter)) lst1 (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
-                                                    if (fst (fst foundWordDir)).Length > (fst (fst longestWordSoFar)).Length then
-                                                        longestWordSoFar <- foundWordDir
-                                                    elif (fst (fst foundWordOppDir)).Length > (fst (fst longestWordSoFar)).Length then
-                                                        longestWordSoFar <- foundWordOppDir
-                                                ) (fst w)
-                                            ) st.playedWords
-                                    longestWordSoFar
-                                
-                                let move = MakeMove (MakeWord lstOfTiles (State.dict st))
-                                
-                                // Your doThing function made asynchronous
-                                let doThingAsync : Async<unit> =
-                                    async {
-                                        
-                                        
-                                            let move = MakeMove (MakeWord lstOfTiles (State.dict st))
-                                            if move.IsEmpty then 
-                                                send cstream SMPass
+                                                        acc
+                                                ) [] lst
+                                            let word = aux hand dict' coord
+                                            if word.IsEmpty then
+                                                []
                                             else
-                                                debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-                                                debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
-                                                send cstream (SMPlay move)
+                                                id :: word
+                                        | _ -> []
                                         
-                                    }
+
+                                    let MakeWord (lst1 : uint32 list) dict: ((uint32 list*(int*int)) * string) =            
+                                        if st.playedWords.IsEmpty then   
+                                            List.iter(fun id->
+                                                let foundWord = (findWordFromChar dict id (rmElementFromList lst1 id) "right" (0,0), (0,0)), "down" 
+                                                if (fst (fst foundWord)).Length > (fst (fst longestWordSoFar)).Length then
+                                                    longestWordSoFar <- foundWord
+                                            ) lst1
+                                        else 
+                                                List.iter(fun w->
+                                                    List.iter(fun letter ->
+                                                        let foundWordDir =      (findWordFromChar dict (fst (snd letter)) lst1 (snd w) (fst letter),(fst letter)), (flipDir (snd w))
+                                                        let foundWordOppDir =   (findWordFromChar dict (fst (snd letter)) lst1 (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
+                                                        if (fst (fst foundWordDir)).Length > (fst (fst longestWordSoFar)).Length then
+                                                            longestWordSoFar <- foundWordDir
+                                                        elif (fst (fst foundWordOppDir)).Length > (fst (fst longestWordSoFar)).Length then
+                                                            longestWordSoFar <- foundWordOppDir
+                                                    ) (fst w)
+                                                ) st.playedWords
+                                        longestWordSoFar
                                     
-
-                            
-
-                               
-                                Async.Start(doThingAsync,ct)
-                        }
-                            // match st.timeout with
-                            //     | Some(x) -> 
-                            //         
-                            //         Async.Start(doThingAsync, ct.Token) 
-                            //         // do System.Threading.Thread.Sleep(int (x-1500u))
-                            //         // ct.Cancel()//buffer
-                            //     | None -> Async.Start(doThingAsync)
-
-                            
-
-                            // // Perform the asynchronous operation and cancel timeout task if completed within time
-                            // async {
-                            //     do! Async.Sleep 0 // Yield to scheduler to allow other work to be done
-                            //     let! task = Async.StartChild(doThingAsync(), cancellationToken = token)
-                            //     if task.IsCompleted then
-                            //         // Move completed within time, cancel the timeout task
-                            //         cts.Cancel()
-                            // } |> Async.RunSynchronously
-
-                        
-                            // debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move)
-            },ct.Token)
-
+                                    let move = MakeMove (MakeWord lstOfTiles (State.dict st))
+                                    
+                                    // Your doThing function made asynchronous
+                                    let doThingAsync : Async<unit> =
+                                        async {                                 
+                                                let move = MakeMove (MakeWord lstOfTiles (State.dict st))
+                                                if move.IsEmpty then 
+                                                    send cstream SMPass
+                                                else
+                                                    debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+                                                    debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
+                                                    send cstream (SMPlay move)
+                                            
+                                        }
+                                    Async.Start(doThingAsync,ct)
+                            }
+                },ct.Token)
 
             let msg = recv cstream
+
+            let rec NextPlayerFinder pid =                
+                let possiblePlayer = ((pid % State.numPlayers st) + 1u)
+                if List.contains(possiblePlayer) st.forfeitPlayers then
+                    NextPlayerFinder (possiblePlayer)
+                else
+                    possiblePlayer
 
             let directionParser (word: list<((int * int) * (uint32 * (char * int)))>) : list<((int * int) * (uint32 * (char * int)))> * string =
                     if word.Length = 1 then
@@ -422,38 +362,38 @@ module Scrabble =
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 debugPrint("Player: " + string st.playerNumber + " in CMPLAYSUCCESS")
-                // printfn("Hand before: %A") st.hand
-                // printfn("Hand after: %A") (updateHand ms newPieces)
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords @ [directionParser ms]) ((State.playerNumber st % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms) (State.timeout st)
-                // printfn("efter save %A ") (st'.hand)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (updateHand ms newPieces) (st.playedWords @ [directionParser ms]) (NextPlayerFinder (State.playerNumber st)) (State.numPlayers st) (updateCoordMap ms) (State.timeout st) (st.forfeitPlayers)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 debugPrint("Player: " + string st.playerNumber + " in CMPLAYED")
                 (* Successful play by other player. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [directionParser ms]) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (updateCoordMap ms) (State.timeout st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords @ [directionParser ms]) (NextPlayerFinder(pid)) (State.numPlayers st) (updateCoordMap ms) (State.timeout st)(st.forfeitPlayers)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap) (State.timeout st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) (NextPlayerFinder(pid)) (State.numPlayers st) (st.coordMap) (State.timeout st)(st.forfeitPlayers)
                 // This state needs to be updated
                 aux st'
             | RCM (CMPassed (pid)) ->
                 (* Somebody passed. Update your state *)
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap) (State.timeout st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) (NextPlayerFinder(pid)) (State.numPlayers st) (st.coordMap) (State.timeout st)(st.forfeitPlayers)
                 // This state needs to be updated
                 aux st'
             | RCM (CMTimeout (pid)) ->
-                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap) (State.timeout st)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) (NextPlayerFinder(pid)) (State.numPlayers st) (st.coordMap) (State.timeout st)(st.forfeitPlayers)
+                // This state needs to be updated
+                aux st'
+            | RCM (CMForfeit (pid)) ->
+                st.forfeitPlayers <- st.forfeitPlayers @ [pid] 
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) (NextPlayerFinder(pid)) (State.numPlayers st) (st.coordMap) (State.timeout st)(st.forfeitPlayers)
                 // This state needs to be updated
                 aux st'
             | RCM (CMGameOver _) -> ()
             | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
-
-
         aux st
 
     let startGame 
@@ -480,5 +420,5 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet [] playerTurn numPlayers Map.empty timeout)
+        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet [] playerTurn numPlayers Map.empty timeout [])
         

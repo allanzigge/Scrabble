@@ -38,7 +38,7 @@ let main argv =
     let words     = readLines "./Dictionaries/English.txt"
 
     let handSize   = 7u
-    let timeout    = Some(1000u)
+    let timeout    = None
     let tiles      = ScrabbleUtil.English.tiles 1u
     let seed       = None
     let port       = 13001
@@ -52,7 +52,7 @@ let main argv =
     let (dictionary, time) =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
     // let players: (string * (bool -> ScrabbleUtil.Dictionary.Dict) * (ScrabbleUtil.boardProg -> (bool -> ScrabbleUtil.Dictionary.Dict) -> uint32 -> uint32 -> uint32 -> (uint32 * uint32) list -> Map<uint32,ScrabbleUtil.tile> -> uint32 option -> 'a -> unit -> unit)) list    = [("Ma Boi The Champion!!", dictionary,TileTitan.Scrabble.startGame); ("Oxy Von BuddhaBitch", dictionary, Oxyphenbutazone.Scrabble.startGame)]
-    let players = spawnMultiples "TileTitan" dictionary TileTitan.Scrabble.startGame 1
+    let players = spawnMultiples "TileTitan" dictionary TileTitan.Scrabble.startGame 2
 
 
 
