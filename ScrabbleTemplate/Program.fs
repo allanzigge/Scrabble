@@ -18,7 +18,7 @@ let spawnMultiples name dict bot =
 
 [<EntryPoint>]
 let main argv =
-    ScrabbleUtil.DebugPrint.toggleDebugPrint false // Change to false to supress debug output
+    ScrabbleUtil.DebugPrint.toggleDebugPrint true // Change to false to supress debug output
 
     System.Console.BackgroundColor <- System.ConsoleColor.White
     System.Console.ForegroundColor <- System.ConsoleColor.Black
@@ -52,7 +52,7 @@ let main argv =
     let (dictionary, time) =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
     // let players: (string * (bool -> ScrabbleUtil.Dictionary.Dict) * (ScrabbleUtil.boardProg -> (bool -> ScrabbleUtil.Dictionary.Dict) -> uint32 -> uint32 -> uint32 -> (uint32 * uint32) list -> Map<uint32,ScrabbleUtil.tile> -> uint32 option -> 'a -> unit -> unit)) list    = [("Ma Boi The Champion!!", dictionary,TileTitan.Scrabble.startGame); ("Oxy Von BuddhaBitch", dictionary, Oxyphenbutazone.Scrabble.startGame)]
-    let players = spawnMultiples "TileTitan" dictionary TileTitan.Scrabble.startGame 1
+    let players = spawnMultiples "TileTitan" dictionary TileTitan.Scrabble.startGame 2
 
 
 
