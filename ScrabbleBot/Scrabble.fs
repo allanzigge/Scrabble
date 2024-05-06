@@ -76,6 +76,7 @@ module Scrabble =
         let rec aux (st : State.state) =
 
             if (State.playerTurn st) = (State.playerNumber st) then
+                let mutable longestWordSoFar = (([],(0,0)), "")
                 
                 debugPrint("-.-.-.-.-.-. My turn, i am player number" + string (State.playerNumber st) + " .-.-.-.-.-.-\n")
                 Print.printHand (pieces: Map<uint32,tile>) (State.hand st)
@@ -301,64 +302,74 @@ module Scrabble =
 
                 let MakeWord (lst1 : uint32 list) dict: ((uint32 list*(int*int)) * string) =             
                     if st.playedWords.IsEmpty then   
-                        let rec aux1 lst dict : uint32 list=
-                            List.fold (fun (acc) (id) ->
-                                if acc.IsEmpty then
-                                    let temp = ScrabbleUtil.Dictionary.step (idToChar id) dict
-                                    match temp with
-                                    | Some (true,_) -> id :: acc
-                                    | Some (false, dict') -> 
-                                        let help = aux1 (rmElementFromList lst id) dict'
-                                        match help with 
-                                        | [] -> acc
-                                        | _ -> id :: acc @ help
-                                    | _ -> []
-                                else
-                                    acc
-                            ) [] lst1
-                        (aux1 lst1 dict,(0,0)),"right"
+                        List.map(fun id->
+                            let foundWord = (findWordFromChar dict id (rmElementFromList lst1 id) "right" (0,0), (0,0)), "down" 
+                            if (fst (fst foundWord)).Length > (fst (fst longestWordSoFar)).Length then
+                                longestWordSoFar <- foundWord
+                            
+                            longestWordSoFar
+                        ) lst1
+                       // let rec aux1 lst dict : uint32 list=
+                       //     List.fold (fun (acc) (id) ->
+                       //         if acc.IsEmpty then
+                       //             let temp = ScrabbleUtil.Dictionary.step (idToChar id) dict
+                       //             match temp with
+                       //             | Some (true,_) -> id :: acc
+                       //             | Some (false, dict') -> 
+                       //                // printfn "List before %A" lst
+                       //                // printfn "List after %A" (rmElementFromList lst id)
+                       //                 let help = aux1 (rmElementFromList lst id) dict'
+                       //                 match help with 
+                       //                 | [] -> acc
+                       //                 | _ -> id :: acc @ help
+                       //             | _ -> []
+                       //         else
+                       //             acc
+                       //     ) [] lst1
+                       // (aux1 lst1 dict,(0,0)),"right"
                     else 
                         let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))> * string>) (hand: uint32 list) dict : list<((uint32 list*(int*int)) * string)>=
-                            List.fold (fun (acc:list<((uint32 list*(int*int)) * string)>) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
-                                //folds over the letters of the a played word, to give a start letter to our new word
-                                let returnedWord = 
-                                    List.fold (fun (acc1:List<((uint32 list * (int*int))*string)>) letter ->
-                                        acc1 @ [(findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (flipDir (snd w))] @ [(findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)), (snd w)]
-                                        //returns the builded word with its start coord
-                                    ) [(([],(0,0)), "")] (fst w)
-                                acc @ returnedWord //return builded word with direction
-                                
-                            ) [(([],(0,0)),"")] pw 
-                        let listOfPossibleWords =  aux2 (st.playedWords) lst1 dict
-                        // printfn "Possible word list: %A" listOfPossibleWords
-                        let longestWord = 
-                            List.fold(fun (acc:((uint32 list*(int*int)) * string)) (word: ((uint32 list*(int*int)) * string)) ->
-                            match word with
-                            | x when (fst (fst x)).Length > (fst (fst acc)).Length -> 
-                                word
-                            |_ -> acc               
-                            ) (([],(0,0)),"") listOfPossibleWords
-                        longestWord
+                            List.map(fun w->
+                                List.map(fun letter ->
+                                    let foundWordDir =      (findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (flipDir (snd w))
+                                    let foundWordOppDir =   (findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
+                                    if (fst (fst foundWordDir)).Length > (fst (fst longestWordSoFar)).Length then
+                                        longestWordSoFar <- foundWordDir
+                                    elif (fst (fst foundWordOppDir)).Length > (fst (fst longestWordSoFar)).Length then
+                                        longestWordSoFar <- foundWordOppDir
+                                    else 
+                                        longestWordSoFar <- longestWordSoFar
+                                ) (fst w)
+                            ) pw
+                            
+
+
+                            //___OLD SHIT
+                           // List.fold (fun (acc:list<((uint32 list*(int*int)) * string)>) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
+                           //     //folds over the letters of the a played word, to give a start letter to our new word
+                           //     let returnedWord = 
+                           //         List.fold (fun (acc1:List<((uint32 list * (int*int))*string)>) letter ->
+                           //             acc1 @ [(findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (flipDir (snd w))] @ [(findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)), (snd w)]
+                           //             //returns the builded word with its start coord
+                           //         ) [(([],(0,0)), "")] (fst w)
+                           //     acc @ returnedWord //return builded word with direction
+                           //     
+                           // ) [(([],(0,0)),"")] pw 
+
+
+                        //let listOfPossibleWords =  aux2 (st.playedWords) lst1 dict
+                        //// printfn "Possible word list: %A" listOfPossibleWords
+                        //let longestWord = 
+                        //    List.fold(fun (acc:((uint32 list*(int*int)) * string)) (word: ((uint32 list*(int*int)) * string)) ->
+                        //    match word with
+                        //    | x when (fst (fst x)).Length > (fst (fst acc)).Length -> 
+                        //        word
+                        //    |_ -> acc               
+                        //    ) (([],(0,0)),"") listOfPossibleWords
+                        //longestWord
+                        aux2 st.playedWord lst1 dict
+                    longestWordSoFar
                 
-                
-                let cts = new System.Threading.CancellationTokenSource()
-                let cts1 = new System.Threading.CancellationTokenSource()
-                // let token = cts.Token
-
-                // Define an asynchronous workflow to handle timeout
-                let timeoutTask = async {
-                    match st.timeout with
-                    | Some(x) -> 
-                        do! Async.Sleep((int x) - 250)  // Wait for the timeout duratio
-                        debugPrint "Timeout occurred"
-                        cts.Cancel()
-                        send cstream SMPass // Pass the turn
-                    | None -> debugPrint "No timeout specified"
-                }
-
-                // Start the timeout task
-                // let timeoutCancellation = Async.StartChild(timeoutTask, cancellationToken = token)
-
                 let move = MakeMove (MakeWord lstOfTiles (State.dict st))
                 
                 // Your doThing function made asynchronous
@@ -371,11 +382,24 @@ module Scrabble =
                             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
                             debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
                             send cstream (SMPlay move)
-                        cts1.Cancel()
                     }
+                match st.timeout with
+                    | Some(x) -> 
+                        try 
+                            Async.Start(doThingAsync, (new System.Threading.CancellationTokenSource(int x-1500)).Token) //buffer
+                        with 
+                        | :? System.OperationCanceledException -> 
+                            debugPrint "Timeout occurred"
+                            let move = MakeMove (longestWordSoFar)
+                            if move.IsEmpty then 
+                                send cstream SMPass
+                            else
+                                debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+                                debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
+                                send cstream (SMPlay move)
+                    | None -> Async.Start(doThingAsync)
 
-                Async.Start(doThingAsync, cts.Token)
-                Async.Start(timeoutTask, cts1.Token)
+                
 
                 // // Perform the asynchronous operation and cancel timeout task if completed within time
                 // async {
@@ -450,7 +474,7 @@ module Scrabble =
             (playerTurn  : uint32) 
             (hand : (uint32 * uint32) list)
             (tiles : Map<uint32, tile>)
-            (timeout : uint32 option) 
+            (timeout : uint32 option)
             (cstream : Stream) =
         debugPrint 
             (sprintf "Starting game!
