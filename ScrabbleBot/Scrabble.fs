@@ -342,17 +342,17 @@ module Scrabble =
                 
                 
                 let cts = new System.Threading.CancellationTokenSource()
+                let cts1 = new System.Threading.CancellationTokenSource()
                 // let token = cts.Token
 
                 // Define an asynchronous workflow to handle timeout
                 let timeoutTask = async {
                     match st.timeout with
                     | Some(x) -> 
-                        do! Async.Sleep(int x)  // Wait for the timeout duration
-                        if not cts.Token.IsCancellationRequested then
-                            debugPrint "Timeout occurred"
-                            cts.Cancel()
-                            send cstream SMPass // Pass the turn
+                        do! Async.Sleep((int x) - 250)  // Wait for the timeout duratio
+                        debugPrint "Timeout occurred"
+                        cts.Cancel()
+                        send cstream SMPass // Pass the turn
                     | None -> debugPrint "No timeout specified"
                 }
 
@@ -371,10 +371,11 @@ module Scrabble =
                             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
                             debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
                             send cstream (SMPlay move)
+                        cts1.Cancel()
                     }
 
                 Async.Start(doThingAsync, cts.Token)
-                Async.Start(timeoutTask)
+                Async.Start(timeoutTask, cts1.Token)
 
                 // // Perform the asynchronous operation and cancel timeout task if completed within time
                 // async {
@@ -427,6 +428,10 @@ module Scrabble =
                 aux st'
             | RCM (CMPassed (pid)) ->
                 (* Somebody passed. Update your state *)
+                let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap) (State.timeout st)
+                // This state needs to be updated
+                aux st'
+            | RCM (CMTimeout (pid)) ->
                 let st' = State.mkState (State.board st) (State.dict st) (State.playerNumber st) (State.hand st) (st.playedWords) ((pid % State.numPlayers st) + 1u) (State.numPlayers st) (st.coordMap) (State.timeout st)
                 // This state needs to be updated
                 aux st'
