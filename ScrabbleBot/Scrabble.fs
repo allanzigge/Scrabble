@@ -70,6 +70,7 @@ module State =
 
 module Scrabble =
     open System.Threading
+    open System.Threading.Tasks
 
     let playGame cstream (pieces: Map<uint32, tile>) (st : State.state) =
 
@@ -299,105 +300,63 @@ module Scrabble =
                         | x :: xs -> xs
                         | [] -> []
 
-
                 let MakeWord (lst1 : uint32 list) dict: ((uint32 list*(int*int)) * string) =             
                     if st.playedWords.IsEmpty then   
-                        List.map(fun id->
+                        List.iter(fun id->
                             let foundWord = (findWordFromChar dict id (rmElementFromList lst1 id) "right" (0,0), (0,0)), "down" 
                             if (fst (fst foundWord)).Length > (fst (fst longestWordSoFar)).Length then
                                 longestWordSoFar <- foundWord
-                            
-                            longestWordSoFar
                         ) lst1
-                       // let rec aux1 lst dict : uint32 list=
-                       //     List.fold (fun (acc) (id) ->
-                       //         if acc.IsEmpty then
-                       //             let temp = ScrabbleUtil.Dictionary.step (idToChar id) dict
-                       //             match temp with
-                       //             | Some (true,_) -> id :: acc
-                       //             | Some (false, dict') -> 
-                       //                // printfn "List before %A" lst
-                       //                // printfn "List after %A" (rmElementFromList lst id)
-                       //                 let help = aux1 (rmElementFromList lst id) dict'
-                       //                 match help with 
-                       //                 | [] -> acc
-                       //                 | _ -> id :: acc @ help
-                       //             | _ -> []
-                       //         else
-                       //             acc
-                       //     ) [] lst1
-                       // (aux1 lst1 dict,(0,0)),"right"
+                      
                     else 
-                        let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))> * string>) (hand: uint32 list) dict : list<((uint32 list*(int*int)) * string)>=
-                            List.map(fun w->
-                                List.map(fun letter ->
-                                    let foundWordDir =      (findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (flipDir (snd w))
-                                    let foundWordOppDir =   (findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
-                                    if (fst (fst foundWordDir)).Length > (fst (fst longestWordSoFar)).Length then
-                                        longestWordSoFar <- foundWordDir
-                                    elif (fst (fst foundWordOppDir)).Length > (fst (fst longestWordSoFar)).Length then
-                                        longestWordSoFar <- foundWordOppDir
-                                    else 
-                                        longestWordSoFar <- longestWordSoFar
-                                ) (fst w)
-                            ) pw
-                            
-
-
-                            //___OLD SHIT
-                           // List.fold (fun (acc:list<((uint32 list*(int*int)) * string)>) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
-                           //     //folds over the letters of the a played word, to give a start letter to our new word
-                           //     let returnedWord = 
-                           //         List.fold (fun (acc1:List<((uint32 list * (int*int))*string)>) letter ->
-                           //             acc1 @ [(findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (flipDir (snd w))] @ [(findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)), (snd w)]
-                           //             //returns the builded word with its start coord
-                           //         ) [(([],(0,0)), "")] (fst w)
-                           //     acc @ returnedWord //return builded word with direction
-                           //     
-                           // ) [(([],(0,0)),"")] pw 
-
-
-                        //let listOfPossibleWords =  aux2 (st.playedWords) lst1 dict
-                        //// printfn "Possible word list: %A" listOfPossibleWords
-                        //let longestWord = 
-                        //    List.fold(fun (acc:((uint32 list*(int*int)) * string)) (word: ((uint32 list*(int*int)) * string)) ->
-                        //    match word with
-                        //    | x when (fst (fst x)).Length > (fst (fst acc)).Length -> 
-                        //        word
-                        //    |_ -> acc               
-                        //    ) (([],(0,0)),"") listOfPossibleWords
-                        //longestWord
-                        aux2 st.playedWord lst1 dict
+                        List.iter(fun w->
+                            List.iter(fun letter ->
+                                let foundWordDir =      (findWordFromChar dict (fst (snd letter)) lst1 (snd w) (fst letter),(fst letter)), (flipDir (snd w))
+                                let foundWordOppDir =   (findWordFromChar dict (fst (snd letter)) lst1 (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
+                                if (fst (fst foundWordDir)).Length > (fst (fst longestWordSoFar)).Length then
+                                    longestWordSoFar <- foundWordDir
+                                elif (fst (fst foundWordOppDir)).Length > (fst (fst longestWordSoFar)).Length then
+                                    longestWordSoFar <- foundWordOppDir
+                                
+                            ) (fst w)
+                        ) st.playedWords
                     longestWordSoFar
                 
                 let move = MakeMove (MakeWord lstOfTiles (State.dict st))
                 
                 // Your doThing function made asynchronous
-                let doThingAsync : Async<unit> =
-                    async {
-                        let move = MakeMove (MakeWord lstOfTiles (State.dict st))
-                        if move.IsEmpty then 
-                            send cstream SMPass
-                        else
-                            debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-                            debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
-                            send cstream (SMPlay move)
-                    }
+                let doThing  =
+                    let move = MakeMove (MakeWord lstOfTiles (State.dict st))
+                    if move.IsEmpty then 
+                        send cstream SMPass
+                    else
+                        debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+                        debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
+                        send cstream (SMPlay move)
+                    
+
                 match st.timeout with
                     | Some(x) -> 
-                        try 
-                            Async.Start(doThingAsync, (new System.Threading.CancellationTokenSource(int x-1500)).Token) //buffer
-                        with 
+                        use cts = new System.Threading.CancellationTokenSource(int x - 99900)
+                        let po = new ParallelOptions() 
+                        po.CancellationToken <- cts.Token 
+                        po.MaxDegreeOfParallelism <- System.Environment.ProcessorCount
+                        try
+                            Parallel.ForEach([||], po, fun _ -> doThing
+                            ) |> ignore
+                        with
                         | :? System.OperationCanceledException -> 
-                            debugPrint "Timeout occurred"
+                            debugPrint "---------EXCEPTION---------"
                             let move = MakeMove (longestWordSoFar)
                             if move.IsEmpty then 
                                 send cstream SMPass
                             else
+                                debugPrint "timeout occured"
                                 debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
                                 debugPrint (sprintf "Player %d -> MADE THIS MOVE:\n%A\n" (State.playerNumber st) move) 
                                 send cstream (SMPlay move)
-                    | None -> Async.Start(doThingAsync)
+                        
+                    | None -> doThing
 
                 
 
