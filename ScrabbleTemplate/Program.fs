@@ -18,7 +18,7 @@ let spawnMultiples name dict bot =
 
 [<EntryPoint>]
 let main argv =
-    ScrabbleUtil.DebugPrint.toggleDebugPrint true // Change to false to supress debug output
+    ScrabbleUtil.DebugPrint.toggleDebugPrint false // Change to false to supress debug output
 
     System.Console.BackgroundColor <- System.ConsoleColor.White
     System.Console.ForegroundColor <- System.ConsoleColor.Black
@@ -38,7 +38,7 @@ let main argv =
     let words     = readLines "./Dictionaries/English.txt"
 
     let handSize   = 7u
-    let timeout    = None
+    let timeout    = Some()
     let tiles      = ScrabbleUtil.English.tiles 1u
     let seed       = None
     let port       = 13001
@@ -48,11 +48,12 @@ let main argv =
         Some (BetterDictionary.empty, BetterDictionary.insert, BetterDictionary.step, None) 
         
     // Uncomment this line to call your client
+  
     let (dictionary, time) =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
-    let players    = [("TileTitan", dictionary, TileTitan.Scrabble.startGame);("OxyLuder", dictionary, Oxyphenbutazone.Scrabble.startGame); ]
+    // let players: (string * (bool -> ScrabbleUtil.Dictionary.Dict) * (ScrabbleUtil.boardProg -> (bool -> ScrabbleUtil.Dictionary.Dict) -> uint32 -> uint32 -> uint32 -> (uint32 * uint32) list -> Map<uint32,ScrabbleUtil.tile> -> uint32 option -> 'a -> unit -> unit)) list    = [("Ma Boi The Champion!!", dictionary,TileTitan.Scrabble.startGame); ("Oxy Von BuddhaBitch", dictionary, Oxyphenbutazone.Scrabble.startGame)]
+    let players = spawnMultiples "TileTitan" dictionary TileTitan.Scrabble.startGame 1
 
-    //let players = spawnMultiples "TileTitan" dictionary TileTitan.Scrabble.startGame 2
 
 
     do ScrabbleServer.Comm.startGame 
