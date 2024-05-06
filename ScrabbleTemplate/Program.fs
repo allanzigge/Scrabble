@@ -55,6 +55,7 @@ let main argv =
     let players = spawnMultiples "TileTitan" dictionary TileTitan.Scrabble.startGame 1
 
 
+
     do ScrabbleServer.Comm.startGame 
           board dictionary handSize timeout tiles seed port players
     
