@@ -302,72 +302,22 @@ module Scrabble =
 
                 let MakeWord (lst1 : uint32 list) dict: ((uint32 list*(int*int)) * string) =             
                     if st.playedWords.IsEmpty then   
-                        List.map(fun id->
+                        List.iter(fun id->
                             let foundWord = (findWordFromChar dict id (rmElementFromList lst1 id) "right" (0,0), (0,0)), "down" 
                             if (fst (fst foundWord)).Length > (fst (fst longestWordSoFar)).Length then
                                 longestWordSoFar <- foundWord
-                            
-                            longestWordSoFar
                         ) lst1
-                       // let rec aux1 lst dict : uint32 list=
-                       //     List.fold (fun (acc) (id) ->
-                       //         if acc.IsEmpty then
-                       //             let temp = ScrabbleUtil.Dictionary.step (idToChar id) dict
-                       //             match temp with
-                       //             | Some (true,_) -> id :: acc
-                       //             | Some (false, dict') -> 
-                       //                // printfn "List before %A" lst
-                       //                // printfn "List after %A" (rmElementFromList lst id)
-                       //                 let help = aux1 (rmElementFromList lst id) dict'
-                       //                 match help with 
-                       //                 | [] -> acc
-                       //                 | _ -> id :: acc @ help
-                       //             | _ -> []
-                       //         else
-                       //             acc
-                       //     ) [] lst1
-                       // (aux1 lst1 dict,(0,0)),"right"
                     else 
-                        let aux2 (pw: list<list<((int * int) * (uint32 * (char * int)))> * string>) (hand: uint32 list) dict : list<((uint32 list*(int*int)) * string)>=
-                            List.map(fun w->
-                                List.map(fun letter ->
-                                    let foundWordDir =      (findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (flipDir (snd w))
-                                    let foundWordOppDir =   (findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
+                            List.iter(fun w->
+                                List.iter(fun letter ->
+                                    let foundWordDir =      (findWordFromChar dict (fst (snd letter)) lst1 (snd w) (fst letter),(fst letter)), (flipDir (snd w))
+                                    let foundWordOppDir =   (findWordFromChar dict (fst (snd letter)) lst1 (flipDir(snd w)) (fst letter),(fst letter)), (snd w)
                                     if (fst (fst foundWordDir)).Length > (fst (fst longestWordSoFar)).Length then
                                         longestWordSoFar <- foundWordDir
                                     elif (fst (fst foundWordOppDir)).Length > (fst (fst longestWordSoFar)).Length then
                                         longestWordSoFar <- foundWordOppDir
-                                    else 
-                                        longestWordSoFar <- longestWordSoFar
                                 ) (fst w)
-                            ) pw
-                            
-
-
-                            //___OLD SHIT
-                           // List.fold (fun (acc:list<((uint32 list*(int*int)) * string)>) (w:list<((int * int) * (uint32 * (char * int)))> * string ) ->
-                           //     //folds over the letters of the a played word, to give a start letter to our new word
-                           //     let returnedWord = 
-                           //         List.fold (fun (acc1:List<((uint32 list * (int*int))*string)>) letter ->
-                           //             acc1 @ [(findWordFromChar dict (fst (snd letter)) hand (snd w) (fst letter),(fst letter)), (flipDir (snd w))] @ [(findWordFromChar dict (fst (snd letter)) hand (flipDir(snd w)) (fst letter),(fst letter)), (snd w)]
-                           //             //returns the builded word with its start coord
-                           //         ) [(([],(0,0)), "")] (fst w)
-                           //     acc @ returnedWord //return builded word with direction
-                           //     
-                           // ) [(([],(0,0)),"")] pw 
-
-
-                        //let listOfPossibleWords =  aux2 (st.playedWords) lst1 dict
-                        //// printfn "Possible word list: %A" listOfPossibleWords
-                        //let longestWord = 
-                        //    List.fold(fun (acc:((uint32 list*(int*int)) * string)) (word: ((uint32 list*(int*int)) * string)) ->
-                        //    match word with
-                        //    | x when (fst (fst x)).Length > (fst (fst acc)).Length -> 
-                        //        word
-                        //    |_ -> acc               
-                        //    ) (([],(0,0)),"") listOfPossibleWords
-                        //longestWord
-                        aux2 st.playedWord lst1 dict
+                            ) st.playedWords
                     longestWordSoFar
                 
                 let move = MakeMove (MakeWord lstOfTiles (State.dict st))
